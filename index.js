@@ -1,6 +1,8 @@
 const express = require('express');
 const forge = require('node-forge');
 
+// echo -n | openssl s_client -connect museum-alert-event-grid.westeurope-1.ts.eventgrid.azure.net:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > cert.pem
+
 const app = express();
 const port = 3000;
 
@@ -16,22 +18,22 @@ app.get('/generate-certificate', (req, res) => {
 
     const attrs = [{
         name: 'commonName',
-        value: 'example.org'
+        value: 'MAS-EC357A188534'
     }, {
         name: 'countryName',
-        value: 'US'
+        value: 'IT'
     }, {
         shortName: 'ST',
-        value: 'California'
+        value: 'Italia'
     }, {
         name: 'localityName',
-        value: 'San Francisco'
+        value: 'Torino'
     }, {
         name: 'organizationName',
-        value: 'Example Inc.'
+        value: 'Museum Alert'
     }, {
         shortName: 'OU',
-        value: 'Test'
+        value: 'R&D'
     }];
     cert.setSubject(attrs);
     cert.setIssuer(attrs);
