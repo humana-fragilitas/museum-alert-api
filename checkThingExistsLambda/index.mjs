@@ -14,7 +14,13 @@ export const handler = async (event, context, callback) => {
   const region = process.env.AWS_REGION; 
   const userPoolId = process.env.USER_POOL_ID;
 
+  console.log('----------------------');
   console.log(JSON.stringify(event, 2));
+  console.log('----------------------');
+
+  console.log('----------------------');
+  console.log(JSON.stringify(context, 2));
+  console.log('----------------------');
 
   const accountId = context.invokedFunctionArn.split(":")[4];
 
@@ -35,7 +41,7 @@ export const handler = async (event, context, callback) => {
     };
   }
 
-  if (!idToken) {
+  if (!authToken) {
     console.log('Received undefined user JWT token; exiting...');
     return {
       statusCode: 401,
@@ -52,7 +58,7 @@ export const handler = async (event, context, callback) => {
     };
   }
 
-  const decodedUserToken = await getDecodedUserToken(region, userPoolId, idToken);
+  const decodedUserToken = await getDecodedUserToken(region, userPoolId, authToken);
 
   if (!decodedUserToken) {
     console.log('User JWT token decoding failed; exiting...');
