@@ -1,5 +1,11 @@
 import { IoTClient, ListThingsCommand } from "@aws-sdk/client-iot";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+//import { createRemoteJWKSet, jwtVerify } from "jose";
+
+import { 
+  toKebabCase,
+  getDecodedUserToken
+
+} from '/opt/nodejs/shared/index.js'; 
 
 /*
 export enum AppErrorType {
@@ -151,22 +157,6 @@ export const handler = async (event, context, callback) => {
 
 // HELPER FUNCTIONS
 
-async function getDecodedUserToken(reg, userPoolId, token) {
-  const JWKS_URI = `https://cognito-idp.${reg}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
-  const jwks = createRemoteJWKSet(new URL(JWKS_URI));
-
-  try {
-    console.log('Decoding user JWT token...');
-    const { payload } = await jwtVerify(token, jwks, {
-      algorithms: ["RS256"],
-    });
-    return payload;
-  } catch (err) {
-    console.error("JWT token decoding failed:", err);
-    return null;
-  }
-}
-
 async function listThingsByCompany(region, company, options = {}) {
   const client = new IoTClient({ region });
   
@@ -223,82 +213,3 @@ async function listThingsByCompany(region, company, options = {}) {
     throw error;
   }
 }
-
-// Alternative approach using search query (if your things have predictable naming)
-async function listThingsByCompanyWithQuery(region, company, options = {}) {
-  const client = new IoTClient({ region });
-  
-  const { maxResults = 50, nextToken } = options;
-  
-  try {
-    // Use attribute-based query (requires things to have Company attribute indexed)
-    const input = {
-      queryString: `attributes.Company:${company}`,
-      maxResults: Math.min(maxResults, 250),
-      nextToken
-    };
-
-    console.log(`Searching things with query: ${input.queryString}`);
-    
-    // Note: This would use SearchIndexCommand if you have fleet indexing enabled
-    // For now, we'll fall back to the filtering approach above
-    
-    return await listThingsByCompany(region, company, options);
-    
-  } catch (error) {
-    console.error('Error in listThingsByCompanyWithQuery:', error);
-    throw error;
-  }
-}
-
-// Batch processing for large datasets
-async function listAllThingsByCompany(region, company, options = {}) {
-  const allThings = [];
-  let nextToken = options.nextToken;
-  let hasMore = true;
-  let batchCount = 0;
-  const maxBatches = options.maxBatches || 10; // Prevent infinite loops
-  
-  while (hasMore && batchCount < maxBatches) {
-    console.log(`Processing batch ${batchCount + 1} for company ${company}`);
-    
-    const batchResponse = await listThingsByCompany(region, company, {
-      ...options,
-      nextToken,
-      maxResults: options.batchSize || 50
-    });
-    
-    allThings.push(...batchResponse.things);
-    nextToken = batchResponse.nextToken;
-    hasMore = !!nextToken;
-    batchCount++;
-    
-    console.log(`Batch ${batchCount} complete. Total things so far: ${allThings.length}`);
-  }
-  
-  return {
-    things: allThings,
-    totalCount: allThings.length,
-    batchesProcessed: batchCount,
-    hasMore: hasMore && batchCount >= maxBatches,
-    nextToken: hasMore ? nextToken : null
-  };
-}
-
-function toKebabCase(input) {
-  return (input || "")
-    .trim() // Remove leading and trailing spaces
-    .toLowerCase() // Convert to lowercase
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
-    .replace(/ /g, '-'); // Replace spaces with minus character
-}
-
-// Optional: Export helper functions for testing
-export { 
-  listThingsByCompany, 
-  listThingsByCompanyWithQuery, 
-  listAllThingsByCompany,
-  getDecodedUserToken,
-  toKebabCase 
-};

@@ -2,47 +2,13 @@ import { CognitoIdentityProviderClient, GetUserCommand } from "@aws-sdk/client-c
 import { IoTClient, DescribeThingCommand } from "@aws-sdk/client-iot";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
-/*
-mkdir my-layer
-cd my-layer
-mkdir -p nodejs
-zip -r my-layer.zip
+import { 
+  toKebabCase,
+  getDecodedUserToken,
+  thingAlreadyExists
 
-lambda-layer/
-└── nodejs/
-    ├── package.json
-    ├── helpers.mjs
+} from '/opt/nodejs/shared/index.js'; 
 
-# package.json
-{
-  "type": "module"
-}
-
-export function formatString(input) {
-  return input.trim().toLowerCase().replace(/\s+/g, ' ').replace(/ /g, '-');
-}
-
-cd lambda-layer
-zip -r layer.zip nodejs
-aws lambda publish-layer-version --layer-name helpers-layer --zip-file fileb://layer.zip --compatible-runtimes nodejs18.x
-
-import { formatString } from '/opt/nodejs/helpers.mjs';
-
-export async function handler(event) {
-  console.log(formatString("  Hello   World  ")); // Output: "hello-world"
-}
-
-*/
-
-
-function toKebabCase(input) {
-  return (input || "")
-      .trim() // Remove leading and trailing spaces
-      .toLowerCase() // Convert to lowercase
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
-      .replace(/ /g, '-'); // Replace spaces with minus character
-}
 
 export const handler = async (event, context, callback) => {
 
@@ -87,7 +53,7 @@ export const handler = async (event, context, callback) => {
     });
   }
 
-  if (await thingAlreadyExists(region, thingName, company)) {
+  if (await thingAlreadyExists(region, thingName, company).exists) {
     console.log('Thing already exists; exiting...');
     callback(null, {
       allowProvisioning: false,
@@ -112,43 +78,4 @@ export const handler = async (event, context, callback) => {
   });
      
 };
-
-// HELPER FUNCTIONS
-
-async function getDecodedUserToken(reg, userPoolId, token) {
-
-  const JWKS_URI = `https://cognito-idp.${reg}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
-  const jwks = createRemoteJWKSet(new URL(JWKS_URI));
-
-  try {
-    console.log('Decoding user JWT token...');
-    const { payload } = await jwtVerify(token, jwks, {
-      algorithms: ["RS256"],
-    });
-    return payload;
-  } catch (err) {
-    console.error("JWT token decoding failed:", err);
-    return null;
-  }
-
-}
-
-async function thingAlreadyExists(reg, thingName, company) {
-  try {
-    const client = new IoTClient({
-      reg
-    });
-    const input = {
-      thingName,
-      attributes: {
-      "custom:Company": company
-    }};
-    const command = new DescribeThingCommand(input);
-    const response = await client.send(command);
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
-
 

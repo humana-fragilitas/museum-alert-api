@@ -16,7 +16,7 @@ export const handler = async (event) => {
     
     // Extract clientId and thingName from the event
     const clientId = event.clientId;
-    const thingName = event.thingName || clientId; // Use thingName if available, otherwise use clientId
+    const thingName = event.thingName || clientId; // TO DO: remove clientId fallback
     
     if (!thingName) {
       throw new Error('Missing thingName/clientId in event');
@@ -61,6 +61,9 @@ export const handler = async (event) => {
     await iotDataClient.send(publishCommand);
     console.log(`Successfully published to topic: ${topicName}`);
     
+    // TO DO: considering that this lambda is triggered by IoT connection/disconnection events,
+    // does still make sense to return a response?
+
     return {
       statusCode: 200,
       body: `Successfully processed event for thing: ${thingName} and company: ${company}`

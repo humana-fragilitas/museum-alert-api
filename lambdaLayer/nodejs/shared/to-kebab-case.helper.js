@@ -1,4 +1,4 @@
-export default function toKebabCase(input) {
+export function toKebabCase(input) {
     return (input || "")
         .trim() // Remove leading and trailing spaces
         .toLowerCase() // Convert to lowercase

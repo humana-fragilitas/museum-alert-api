@@ -2,52 +2,13 @@ import { IoTClient, AttachPolicyCommand, CreatePolicyCommand } from "@aws-sdk/cl
 import { CognitoIdentityClient, GetIdCommand } from "@aws-sdk/client-cognito-identity";
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from "@aws-sdk/client-cognito-identity-provider";
 
+import { 
+  toKebabCase
+} from '/opt/nodejs/shared/index.js'; 
+
 const iotClient = new IoTClient({ region: process.env.AWS_REGION });
 const cognitoIdentityClient = new CognitoIdentityClient({ region: process.env.AWS_REGION });
 const cognitoIdpClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-
-/*
-mkdir my-layer
-cd my-layer
-mkdir -p nodejs
-zip -r my-layer.zip
-
-lambda-layer/
-└── nodejs/
-    ├── package.json
-    ├── helpers.mjs
-
-# package.json
-{
-  "type": "module"
-}
-
-export function formatString(input) {
-  return input.trim().toLowerCase().replace(/\s+/g, ' ').replace(/ /g, '-');
-}
-
-cd lambda-layer
-zip -r layer.zip nodejs
-aws lambda publish-layer-version --layer-name helpers-layer --zip-file fileb://layer.zip --compatible-runtimes nodejs18.x
-
-import { formatString } from '/opt/nodejs/helpers.mjs';
-
-export async function handler(event) {
-  console.log(formatString("  Hello   World  ")); // Output: "hello-world"
-}
-
-*/
-
-
-function toKebabCase(input) {
-    return (input || "")
-        .trim() // Remove leading and trailing spaces
-        .toLowerCase() // Convert to lowercase
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
-        .replace(/ /g, '-'); // Replace spaces with minus character
-}
-
 
 export const handler = async (event, context, callback) => {
     
