@@ -131,3 +131,6 @@ dist
 
 # Lambda packages
 *.zip
+
+# macOS
+.DS_Store
