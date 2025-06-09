@@ -14,7 +14,6 @@ export function successApiResponse(environment,
     },
     statusCode,
     body: JSON.stringify({
-      success: true,
       data: data,
       timestamp: new Date().toISOString()
     })

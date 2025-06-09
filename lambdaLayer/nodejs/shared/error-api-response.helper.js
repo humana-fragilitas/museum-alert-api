@@ -1,5 +1,13 @@
 import { hasCors } from './has-cors.helper.js';
 
+/**
+ * 
+ * a more generic api response function could be
+ * 
+ * apiResponse(environment, statusCode, message, data, ) {
+ *   r
+ */
+
 export function errorApiResponse(environment,
                                  statusCode,
                                  errorCode,
@@ -17,6 +25,16 @@ export function errorApiResponse(environment,
   if (details) {
     errorBody.error.details = details;
   }
+
+  /***
+   *       return errorApiResponse(
+        stage,
+        404,
+        'POLICY_NOT_FOUND',
+        'IoT policy not found',
+        { policyName }
+      );
+   */
   
   return {
     headers: {
