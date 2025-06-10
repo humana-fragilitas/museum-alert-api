@@ -89,7 +89,7 @@ export const handler = async (event, context, callback) => {
       {
         "Effect": "Allow",
         "Action": "iot:Publish",
-        "Resource": `arn:aws:iot:${region}:${accountId}:topic/companies/${company}/devices/+/commands`
+        "Resource": `arn:aws:iot:${region}:${accountId}:topic/companies/${company}/devices/*/commands`
       }
     ]
   };

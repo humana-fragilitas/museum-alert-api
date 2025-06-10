@@ -14,14 +14,22 @@ import {
   GetItemCommand
 } from '@aws-sdk/client-dynamodb';
 
+import {
+  IAMClient,
+  CreateRoleCommand,
+  AttachRolePolicyCommand,
+  PutRolePolicyCommand
+} from '@aws-sdk/client-iam';
+
 import { randomUUID } from 'crypto';
 
-// Initialize clients
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
-
-// Environment variables
-const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
+  // Initialize clients
+  const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+  const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+  const iamClient = new IAMClient({ region: process.env.AWS_REGION });
+  
+  // Environment variables
+  const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
 
 /**
  * Post Confirmation Lambda Trigger
@@ -34,14 +42,20 @@ const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
  * 
  * All operations are transactional - if any fail, everything is rolled back
  */
-export const handler = async (event) => {
+export const handler = async (event, context) => {
   console.log('Post Confirmation trigger event:', JSON.stringify(event, null, 2));
+
+  //const AWS_ACCOUNT_ID = process.env.AWS_ACCOUNT_ID || event.invokedFunctionArn?.split(':')[4];
+  const AWS_REGION = process.env.AWS_REGION || event.invokedFunctionArn?.split(':')[3];
+
+  const AWS_ACCOUNT_ID = context.invokedFunctionArn.split(':')[4];
 
   const userPoolId = event.userPoolId;
   const username = event.userName;
   const userAttributes = event.request.userAttributes;
   const userEmail = userAttributes.email;
   
+  // Get company name from validation data (temporary, not persisted)
   const companyName = userAttributes['custom:Company'];
 
   if (!companyName) {
@@ -52,12 +66,11 @@ export const handler = async (event) => {
   console.log(`Setting up company "${companyName}" for user ${userEmail}`);
 
   // Generate UUID v4 for company ID
-  // This currently exceeds the length (36) of the custom:CompanyId attribute in Cognito
-  // const companyId = `company_${randomUUID()}`;
   const companyId = randomUUID();
 
   let createdResources = {
     dynamoCompany: false,
+    iamRole: false,
     cognitoGroup: false,
     userInGroup: false,
     userAttributes: false
@@ -74,12 +87,17 @@ export const handler = async (event) => {
     createdResources.userAttributes = true;
     console.log(`✅ Updated user with company ID: ${companyId}`);
 
-    // Step 3: Create Cognito group with Company ID
-    await createCompanyGroup(userPoolId, companyId, companyName);
-    createdResources.cognitoGroup = true;
-    console.log(`✅ Created Cognito group: ${companyId}`);
+    // Step 3: Create IAM Role for the company
+    const roleName = await createCompanyIAMRole(companyId, companyName, AWS_ACCOUNT_ID, AWS_REGION);
+    createdResources.iamRole = true;
+    console.log(`✅ Created IAM Role: ${roleName}`);
 
-    // Step 4: Add user to the group
+    // Step 4: Create Cognito group with IAM Role
+    await createCompanyGroupWithRole(userPoolId, companyId, companyName, roleName, AWS_ACCOUNT_ID);
+    createdResources.cognitoGroup = true;
+    console.log(`✅ Created Cognito group with role: ${companyId}`);
+
+    // Step 5: Add user to the group (inherits IAM role automatically)
     await addUserToGroup(userPoolId, username, companyId);
     createdResources.userInGroup = true;
     console.log(`✅ Added user to group: ${companyId}`);
@@ -99,54 +117,10 @@ export const handler = async (event) => {
 };
 
 /**
- * Create company entry in DynamoDB with UUID v4
- */
-// const createCompanyInDynamoDB = async (companyId, companyName, ownerEmail, ownerUsername) => {
-//   const now = new Date().toISOString();
-  
-//   const command = new PutItemCommand({
-//     TableName: COMPANIES_TABLE,
-//     Item: {
-//       companyId: { S: companyId },
-//       companyName: { S: companyName },
-//       createdAt: { S: now },
-//       updatedAt: { S: now },
-//       ownerEmail: { S: ownerEmail },
-//       ownerUsername: { S: ownerUsername },
-//       memberCount: { N: '1' },
-//       members: {
-//         L: [{
-//           M: {
-//             email: { S: ownerEmail },
-//             username: { S: ownerUsername },
-//             role: { S: 'owner' },
-//             joinedAt: { S: now }
-//           }
-//         }]
-//       },
-//       status: { S: 'active' }
-//     }
-//     // No ConditionExpression needed - UUID v4 collision probability is negligible
-//     // If you want extra safety, uncomment the line below:
-//     // ConditionExpression: 'attribute_not_exists(companyId)'
-//   });
-
-//   await dynamoClient.send(command);
-// };
-
-/**
  * Create company entry in DynamoDB with conditional write for uniqueness
  */
 const createCompanyInDynamoDB = async (companyId, companyName, ownerEmail, ownerUsername) => {
-  
-    console.log('------------------------');
-    console.log(companyId);
-    console.log(companyName);
-    console.log(ownerEmail);
-    console.log(ownerUsername);
-    console.log('------------------------');
-  
-    const now = new Date().toISOString();
+  const now = new Date().toISOString();
   
   const command = new PutItemCommand({
     TableName: COMPANIES_TABLE,
@@ -199,17 +173,103 @@ const updateUserWithCompanyId = async (userPoolId, username, companyId) => {
 };
 
 /**
- * Create Cognito group for the company
+ * Create IAM Role for company with IoT permissions
  */
-const createCompanyGroup = async (userPoolId, companyId, companyName) => {
+const createCompanyIAMRole = async (companyId, companyName, aws_acc_id, aws_reg) => {
+  const roleName = `IoTRole_${companyId}`;
+  const company = sanitizeCompanyName(companyName);
+  
+  // Trust policy for Cognito Identity Pool
+  const trustPolicy = {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: {
+          Federated: "cognito-identity.amazonaws.com"
+        },
+        Action: "sts:AssumeRoleWithWebIdentity",
+        Condition: {
+          StringEquals: {
+            "cognito-identity.amazonaws.com:aud": process.env.IDENTITY_POOL_ID
+          }
+        }
+      }
+    ]
+  };
+
+  // Create the IAM role
+  const createRoleCommand = new CreateRoleCommand({
+    RoleName: roleName,
+    AssumeRolePolicyDocument: JSON.stringify(trustPolicy),
+    Description: `IoT role for company ${companyName} (${companyId})`
+  });
+
+  await iamClient.send(createRoleCommand);
+
+  // IoT permissions policy
+  const iotPolicy = {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: "iot:Connect",
+        Resource: `arn:aws:iot:${aws_reg}:${aws_acc_id}:client/\${cognito-identity.amazonaws.com:sub}`
+      },
+      {
+        Effect: "Allow",
+        Action: ["iot:Subscribe", "iot:Receive"],
+        Resource: [
+          `arn:aws:iot:${aws_reg}:${aws_acc_id}:topic/companies/${companyId}/events`,
+          `arn:aws:iot:${aws_reg}:${aws_acc_id}:topicfilter/companies/${companyId}/events`
+        ]
+      },
+      {
+        Effect: "Allow",
+        Action: "iot:Publish",
+        Resource: `arn:aws:iot:${aws_reg}:${aws_acc_id}:topic/companies/${companyId}/devices/+/commands`
+      }
+    ]
+  };
+
+  // Attach IoT policy to role
+  const putRolePolicyCommand = new PutRolePolicyCommand({
+    RoleName: roleName,
+    PolicyName: `IoTPolicy_${companyId}`,
+    PolicyDocument: JSON.stringify(iotPolicy)
+  });
+
+  await iamClient.send(putRolePolicyCommand);
+
+  return roleName;
+};
+
+/**
+ * Create Cognito group with IAM role attached
+ */
+const createCompanyGroupWithRole = async (userPoolId, companyId, companyName, roleName, aws_acc_id) => {
+  const roleArn = `arn:aws:iam::${aws_acc_id}:role/${roleName}`;
+  
   const command = new CreateGroupCommand({
     UserPoolId: userPoolId,
-    GroupName: companyId, // Use company ID as group name for uniqueness
+    GroupName: companyId,
     Description: `Company group for ${companyName} (${companyId})`,
+    RoleArn: roleArn,  // This is the key - users inherit this role
     Precedence: 100
   });
 
   await cognitoClient.send(command);
+};
+
+/**
+ * Sanitize company name for IAM/IoT resource naming
+ */
+const sanitizeCompanyName = (companyName) => {
+  return companyName
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9\-_]/g, '')
+    .toLowerCase();
 };
 
 /**
