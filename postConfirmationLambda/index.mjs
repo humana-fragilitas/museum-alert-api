@@ -45,16 +45,6 @@ export const handler = async (event, context) => {
   const username = event.userName;
   const userAttributes = event.request.userAttributes;
   const userEmail = userAttributes.email;
-  
-  // Get company name from validation data (temporary, not persisted)
-  const companyName = userAttributes['custom:Company'];
-
-  if (!companyName) {
-    console.error('No company name provided during signup');
-    return event;
-  }
-
-  console.log(`Setting up company "${companyName}" for user ${userEmail}`);
 
   // Generate UUID v4 for company ID
   const companyId = randomUUID();
@@ -68,8 +58,10 @@ export const handler = async (event, context) => {
 
   try {
 
+    console.log(`Setting up company "${companyId}" for user ${userEmail}`);
+
     // Step 1: Create Company in DynamoDB (single source of truth for company name)
-    await createCompanyInDynamoDB(companyId, companyName, userEmail, username);
+    await createCompanyInDynamoDB(companyId, '', userEmail, username);
     createdResources.dynamoCompany = true;
     console.log(`✅ Created company in DynamoDB: ${companyId}`);
 
@@ -79,7 +71,7 @@ export const handler = async (event, context) => {
     console.log(`✅ Updated user with company ID: ${companyId}`);
 
     // Step 3: Create Cognito group without IAM role
-    await createCompanyGroup(userPoolId, companyId, companyName);
+    await createCompanyGroup(userPoolId, companyId);
     createdResources.cognitoGroup = true;
     console.log(`✅ Created Cognito group: ${companyId}`);
 
@@ -88,7 +80,7 @@ export const handler = async (event, context) => {
     createdResources.userInGroup = true;
     console.log(`✅ Added user to group: ${companyId}`);
 
-    console.log(`🎉 Successfully set up company "${companyName}" (${companyId}) for user ${userEmail}`);
+    console.log(`🎉 Successfully set up company with id ${companyId} for user ${userEmail}`);
 
     return event;
 
@@ -164,11 +156,11 @@ const updateUserWithCompanyId = async (userPoolId, username, companyId) => {
 /**
  * Create Cognito group without IAM role
  */
-const createCompanyGroup = async (userPoolId, companyId, companyName) => {
+const createCompanyGroup = async (userPoolId, companyId) => {
   const command = new CreateGroupCommand({
     UserPoolId: userPoolId,
     GroupName: companyId,
-    Description: `Company group for ${companyName} (${companyId})`,
+    Description: `User group for company with id: ${companyId}`,
     // No RoleArn - group is for organization only
     Precedence: 100
   });
