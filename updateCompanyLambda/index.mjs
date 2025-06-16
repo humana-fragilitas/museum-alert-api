@@ -32,14 +32,15 @@ export const handler = async (event, context) => {
   console.log('Update Company request:', JSON.stringify(event, null, 2));
 
   // Extract company ID from path parameters
-  const companyId = event.pathParameters?.companyId;
+  const userClaims = event.requestContext?.authorizer?.claims;
+  const companyId = userClaims?.['custom:Company'];
   
   if (!companyId) {
     return errorApiResponse(
       stage,
-      400,
+      404,
       'MISSING_COMPANY_ID',
-      'Company ID is required in path parameters'
+      'User has no company ID associated with their account'
     );
   }
 
