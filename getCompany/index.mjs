@@ -3,6 +3,8 @@ import {
   GetItemCommand
 } from '@aws-sdk/client-dynamodb';
 
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+
 import { 
   errorApiResponse,
   successApiResponse,
@@ -142,41 +144,7 @@ const getCompanyById = async (companyId) => {
  */
 const unmarshallDynamoItem = (item) => {
   if (!item) return null;
-
-  const result = {};
-  
-  Object.keys(item).forEach(key => {
-    const value = item[key];
-    
-    if (value.S !== undefined) {
-      result[key] = value.S;
-    } else if (value.N !== undefined) {
-      result[key] = Number(value.N);
-    } else if (value.L !== undefined) {
-      // Handle lists (like members array)
-      result[key] = value.L.map(item => {
-        if (item.M) {
-          return unmarshallDynamoItem(item.M);
-        }
-        return unmarshallDynamoItem(item);
-      });
-    } else if (value.M !== undefined) {
-      // Handle maps (like member objects)
-      result[key] = unmarshallDynamoItem(value.M);
-    } else if (value.BOOL !== undefined) {
-      result[key] = value.BOOL;
-    } else if (value.NULL !== undefined) {
-      result[key] = null;
-    } else if (value.SS !== undefined) {
-      // String set
-      result[key] = value.SS;
-    } else if (value.NS !== undefined) {
-      // Number set
-      result[key] = value.NS.map(Number);
-    }
-  });
-
-  return result;
+  return unmarshall(item);
 };
 
 // ===== USAGE EXAMPLES =====

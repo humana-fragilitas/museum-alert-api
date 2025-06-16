@@ -4,6 +4,8 @@ import {
   GetItemCommand
 } from '@aws-sdk/client-dynamodb';
 
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+
 import { 
   errorApiResponse,
   successApiResponse,
@@ -258,28 +260,7 @@ const buildExpressionAttributeValues = (updateData) => {
  */
 const unmarshallDynamoItem = (item) => {
   if (!item) return null;
-
-  const result = {};
-  
-  Object.keys(item).forEach(key => {
-    const value = item[key];
-    
-    if (value.S !== undefined) {
-      result[key] = value.S;
-    } else if (value.N !== undefined) {
-      result[key] = Number(value.N);
-    } else if (value.L !== undefined) {
-      result[key] = value.L.map(unmarshallDynamoItem);
-    } else if (value.M !== undefined) {
-      result[key] = unmarshallDynamoItem(value.M);
-    } else if (value.BOOL !== undefined) {
-      result[key] = value.BOOL;
-    } else if (value.NULL !== undefined) {
-      result[key] = null;
-    }
-  });
-
-  return result;
+  return unmarshall(item);
 };
 
 // ===== USAGE EXAMPLES =====
