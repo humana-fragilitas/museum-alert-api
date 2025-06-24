@@ -3,7 +3,7 @@ import {
   GetItemCommand
 } from '@aws-sdk/client-dynamodb';
 
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 import { 
   errorApiResponse,
@@ -11,11 +11,11 @@ import {
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
 
-// Initialize clients
+
+
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
-// Environment variables
-const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
+const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
  * Get Company Lambda Function
@@ -23,66 +23,71 @@ const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
  * Retrieves the authenticated user's company data
  * Company ID is extracted from user's JWT token (custom:Company claim)
  */
-export const handler = async (event, context) => {
+export const handler = async (event) => {
   
-  validateEnvironmentVariables(['COMPANIES_TABLE']);
+  validateEnvironmentVariables([
+    'COMPANIES_TABLE'
+  ]);
 
   const stage = event.requestContext?.stage;
-  
-  console.log('Get Company request:', JSON.stringify(event, null, 2));
 
-  // Extract company ID from user session (JWT claims)
   const userClaims = event.requestContext?.authorizer?.claims;
   const companyId = userClaims?.['custom:Company'];
   const userEmail = userClaims?.email;
   
   if (!userClaims) {
+
+    console.error('Missing user claims in request context; exiting...');
+
     return errorApiResponse(
       stage,
-      401,
-      'UNAUTHORIZED',
-      'Missing or invalid authentication context'
+      'Missing or invalid authentication context',
+      401
     );
+
   }
   
   if (!companyId) {
+
     return errorApiResponse(
       stage,
-      404,
-      'NO_COMPANY_ASSOCIATED',
-      'User has no company associated with their account'
+      'User has no company associated with their account',
+      404
     );
+
   }
 
   try {
-    // Get the company from DynamoDB
+
     const company = await getCompanyById(companyId);
     
     if (!company) {
       return errorApiResponse(
         stage,
-        404,
-        'COMPANY_NOT_FOUND',
-        'Company not found'
+        'Company not found',
+        404
       );
     }
 
-    // Optional: Verify user belongs to this company
     const userBelongsToCompany = company.members?.some(member => 
       member.email === userEmail || member.username === userEmail
     );
 
     if (!userBelongsToCompany) {
-      console.warn(`User ${userEmail} tried to access company ${companyId} but is not a member`);
+
+      console.warn(
+        `User ${userEmail} tried to access company ${companyId} ` +
+        `but is not a member`
+      );
+
       return errorApiResponse(
         stage,
-        403,
-        'ACCESS_DENIED',
-        'User does not belong to this company'
+        'User does not belong to this company',
+        403
       );
+
     }
 
-    // Add user-specific context to response
     const userMembership = company.members?.find(member => 
       member.email === userEmail || member.username === userEmail
     );
@@ -93,30 +98,37 @@ export const handler = async (event, context) => {
       userJoinedAt: userMembership?.joinedAt
     };
 
-    console.log(`✅ Successfully retrieved company: ${companyId} for user: ${userEmail}`);
+    console.log(
+      `✅ Successfully retrieved company: ${companyId} ` +
+      `for user: ${userEmail}`
+    );
 
     return successApiResponse(stage, {
       company: responseData
     });
 
   } catch (error) {
+
     console.error('Error retrieving company:', error);
     
     return errorApiResponse(
       stage,
-      500,
-      'RETRIEVAL_FAILED',
       'Failed to retrieve company data',
+      500,
       { error: error.message }
     );
+
   }
+
 };
 
 /**
  * Get company by ID from DynamoDB
  */
 const getCompanyById = async (companyId) => {
+
   try {
+
     const command = new GetItemCommand({
       TableName: COMPANIES_TABLE,
       Key: {
@@ -130,21 +142,15 @@ const getCompanyById = async (companyId) => {
       return null;
     }
 
-    // Convert DynamoDB format to regular JSON
-    return unmarshallDynamoItem(result.Item);
+    return unmarshall(result.Item);
     
   } catch (error) {
+
     console.error('Error getting company from DynamoDB:', error);
     throw error;
-  }
-};
 
-/**
- * Convert DynamoDB item format to regular JSON
- */
-const unmarshallDynamoItem = (item) => {
-  if (!item) return null;
-  return unmarshall(item);
+  }
+
 };
 
 // ===== USAGE EXAMPLES =====

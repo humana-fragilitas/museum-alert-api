@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "name": "API Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "eslint.enable": true,
+    "eslint.workingDirectories": [
+      { "directory": ".", "changeProcessCwd": true }
+    ],
+    "eslint.useFlatConfig": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  }
+}

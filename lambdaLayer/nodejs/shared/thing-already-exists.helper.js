@@ -9,11 +9,14 @@ export async function thingAlreadyExists(reg, thingName, company) {
     const client = new IoTClient({
       reg
     });
+
     const input = {
       thingName
     };
+
     const command = new DescribeThingCommand(input);
     const response = await client.send(command);
+
     return {
       exists: true,
       sameCompany: response.attributes["Company"] === company
@@ -22,14 +25,22 @@ export async function thingAlreadyExists(reg, thingName, company) {
   } catch(error) {
 
     if (error.name === 'ResourceNotFoundException') {
+
       return {
         exists: false,
         sameCompany: false
       };
+
     } else {
-      console.error('[LAMBDA LAYER: thingAlreadyExists]: failed to describe thing:',
-          error);
+
+      console.error(
+        `[LAMBDA LAYER: thingAlreadyExists]: ` +
+        `failed to describe thing:`,
+        error
+      );
+
       return null;
+
     }
 
   }

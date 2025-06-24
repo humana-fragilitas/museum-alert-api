@@ -1,16 +1,18 @@
-import { 
-  toKebabCase,
-  getDecodedUserToken,
-  thingAlreadyExists,
+import {
   errorApiResponse,
+  getDecodedUserToken,
   successApiResponse,
+  thingAlreadyExists,
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js'; 
 
 
-export const handler = async (event, context, callback) => {
+export const handler = async (event) => {
 
-  validateEnvironmentVariables(['USER_POOL_ID']);
+  validateEnvironmentVariables([
+    'AWS_REGION',
+    'USER_POOL_ID'
+  ]);
 
   const stage = event.requestContext?.stage;
   const thingName = event.pathParameters?.thingName;
@@ -24,27 +26,27 @@ export const handler = async (event, context, callback) => {
 
     return errorApiResponse(
       stage,
-      403,
-      'MISSING_THING_NAME',
-      'Missing or invalid thing name'
+      'Missing or invalid thing name',
+      403
     );
 
   }
 
   if (!authToken) {
 
-    console.error('Cannot retrieve logged user\'s JWT token; exiting...');
+    console.error(`Cannot retrieve logged user's JWT token; exiting...`);
 
     return errorApiResponse(
       stage,
-      401,
-      'INVALID_TOKEN',
-      'Authentication token not found'
+      'Authentication token not found',
+      401
     );
 
   }
 
-  const decodedUserToken = await getDecodedUserToken(region, userPoolId, authToken);
+  const decodedUserToken = await getDecodedUserToken(
+    region, userPoolId, authToken
+  );
 
   if (!decodedUserToken) {
 
@@ -52,24 +54,22 @@ export const handler = async (event, context, callback) => {
 
     return errorApiResponse(
       stage,
-      500,
-      'TOKEN_DECODING_FAILED',
-      'Failed to decode user JWT token'
+      'Failed to decode user JWT token',
+      500
     );
 
   }
 
-  const company = toKebabCase(decodedUserToken["custom:Company"]);
+  const company = decodedUserToken["custom:Company"];
 
   if (!company) {
 
-    console.error('Company not found in logged user\'s JWT token; exiting...');
+    console.error(`Company not found in logged user's JWT token; exiting...`);
 
     return errorApiResponse(
       stage,
-      403,
-      'MISSING_COMPANY',
-      'Company information not found in logged user\'s JWT token'
+      `Company information not found in logged user's JWT token`,
+      403
     );
 
   }
@@ -82,9 +82,8 @@ export const handler = async (event, context, callback) => {
 
     return errorApiResponse(
       stage,
-      500,
-      'THING_CHECK_FAILED',
-      'Failed to check if thing exists in IoT registry'
+      'Failed to check if thing exists in IoT registry',
+      500
     );
 
   }
@@ -92,13 +91,11 @@ export const handler = async (event, context, callback) => {
   if (checkResponse.exists) {
 
     const message = (checkResponse.sameCompany) ?
-      `Thing already exists in the logged user\'s company "${company}"` :
+      `Thing already exists in the logged user's company "${company}"` :
       'Thing already exists in a different company';
 
     console.log(message);
 
-    // TO DO: update the frontend to handle the response
-    // and display the message accordingly; this payload is passed as data: { ... }
     return successApiResponse(stage, {
       message,
       thingName,
@@ -111,9 +108,8 @@ export const handler = async (event, context, callback) => {
 
     return errorApiResponse(
       stage,
-      404,
-      'THING_NOT_FOUND',
-      'Thing not found in IoT registry'
+      'Thing not found in IoT registry',
+      404
     );
 
   }

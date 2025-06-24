@@ -6,7 +6,13 @@ export function validateEnvironmentVariables(requiredVariables = []) {
     const missing = requiredVariables.filter(envVar => !process.env[envVar]);
 
     if (missing.length > 0) {
-        throw new Error(`[LAMBDA LAYER: validateEnvironmentVariables]: missing required environment variables: ${missing.join(', ')}`);
+
+        throw new Error(
+            `[LAMBDA LAYER: validateEnvironmentVariables]: ` + 
+            `missing required environment variables: `       +
+            `${missing.join(', ')}`
+        );
+
     }
 
 };

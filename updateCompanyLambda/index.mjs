@@ -1,10 +1,10 @@
 import {
   DynamoDBClient,
-  UpdateItemCommand,
-  GetItemCommand
+  GetItemCommand,
+  UpdateItemCommand
 } from '@aws-sdk/client-dynamodb';
 
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 import { 
   errorApiResponse,
@@ -12,10 +12,8 @@ import {
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
 
-// Initialize clients
-const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
-// Environment variables
+const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
@@ -25,80 +23,88 @@ const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
  * Supports: companyName, status, and other company-level attributes
  * Does NOT update members array (separate endpoint needed for that)
  */
-export const handler = async (event, context) => {
+export const handler = async (event) => {
   
   validateEnvironmentVariables(['COMPANIES_TABLE']);
 
   const stage = event.requestContext?.stage;
-  
-  console.log('Update Company request:', JSON.stringify(event, null, 2));
 
-  // Extract company ID from path parameters
   const userClaims = event.requestContext?.authorizer?.claims;
   const companyId = userClaims?.['custom:Company'];
   
   if (!companyId) {
     return errorApiResponse(
       stage,
-      404,
-      'MISSING_COMPANY_ID',
-      'User has no company ID associated with their account'
+      'User has no company ID associated with their account',
+      404
     );
   }
 
   // Parse request body
   let updateData;
+
   try {
+
     updateData = JSON.parse(event.body || '{}');
-  } catch (error) {
+
+  } catch {
+
     return errorApiResponse(
       stage,
-      400,
-      'INVALID_JSON',
-      'Invalid JSON in request body'
+      'Invalid JSON in request body',
+      400
     );
+
   }
 
   // Validate that we have at least one field to update
   const allowedFields = ['companyName', 'status'];
-  const providedFields = Object.keys(updateData).filter(key => allowedFields.includes(key));
+  const providedFields = Object.keys(updateData)
+                               .filter(key => allowedFields.includes(key));
   
   if (providedFields.length === 0) {
+
     return errorApiResponse(
       stage,
-      400,
-      'NO_FIELDS_TO_UPDATE',
-      `No valid fields provided. Allowed fields: ${allowedFields.join(', ')}`
+      `No valid fields provided. Allowed fields: ${allowedFields.join(', ')}`,
+      400
     );
+
   }
 
   // Validate field values
   const validationError = validateUpdateFields(updateData);
+
   if (validationError) {
+
     return errorApiResponse(
       stage,
+      validationError,
       400,
-      'VALIDATION_ERROR',
-      validationError
     );
+
   }
 
   try {
-    // Check if company exists first
+s
     const existingCompany = await getCompanyById(companyId);
+
     if (!existingCompany) {
       return errorApiResponse(
         stage,
-        404,
-        'COMPANY_NOT_FOUND',
-        'Company not found'
+        'Company not found',
+        404
       );
     }
 
     // Build dynamic update expression
     const updateExpression = buildUpdateExpression(updateData);
-    const expressionAttributeNames = buildExpressionAttributeNames(updateData);
-    const expressionAttributeValues = buildExpressionAttributeValues(updateData);
+    const expressionAttributeNames = buildExpressionAttributeNames(
+      updateData
+    );
+    const expressionAttributeValues = buildExpressionAttributeValues(
+      updateData
+    );
 
     // Update the company
     const command = new UpdateItemCommand({
@@ -117,7 +123,7 @@ export const handler = async (event, context) => {
     const result = await dynamoClient.send(command);
     
     // Convert DynamoDB format to regular JSON
-    const updatedCompany = unmarshallDynamoItem(result.Attributes);
+    const updatedCompany = unmarshall(result.Attributes);
 
     console.log(`✅ Successfully updated company: ${companyId}`);
 
@@ -132,9 +138,8 @@ export const handler = async (event, context) => {
     if (error.name === 'ConditionalCheckFailedException') {
       return errorApiResponse(
         stage,
-        404,
-        'COMPANY_NOT_FOUND',
-        'Company not found'
+        'Company not found',
+        404
       );
     }
 
@@ -142,19 +147,22 @@ export const handler = async (event, context) => {
     
     return errorApiResponse(
       stage,
-      500,
-      'UPDATE_FAILED',
       'Failed to update company',
-      { error: error.message }
+      500,
+      error.message
     );
+
   }
+  
 };
 
 /**
  * Get company by ID
  */
 const getCompanyById = async (companyId) => {
+
   try {
+
     const command = new GetItemCommand({
       TableName: COMPANIES_TABLE,
       Key: {
@@ -163,18 +171,22 @@ const getCompanyById = async (companyId) => {
     });
 
     const result = await dynamoClient.send(command);
-    return result.Item ? unmarshallDynamoItem(result.Item) : null;
+    return result.Item ? unmarshall(result.Item) : null;
     
   } catch (error) {
+
     console.error('Error getting company:', error);
     return null;
+
   }
+
 };
 
 /**
  * Validate update fields
  */
 const validateUpdateFields = (updateData) => {
+
   // Validate company name
   if (updateData.companyName !== undefined) {
     if (typeof updateData.companyName !== 'string') {
@@ -197,12 +209,14 @@ const validateUpdateFields = (updateData) => {
   }
 
   return null; // No validation errors
+
 };
 
 /**
  * Build dynamic UPDATE expression
  */
 const buildUpdateExpression = (updateData) => {
+
   const setClauses = [];
   
   // Always update the updatedAt timestamp
@@ -216,12 +230,14 @@ const buildUpdateExpression = (updateData) => {
   });
 
   return `SET ${setClauses.join(', ')}`;
+
 };
 
 /**
  * Build expression attribute names
  */
 const buildExpressionAttributeNames = (updateData) => {
+
   const names = {
     '#updatedAt': 'updatedAt'
   };
@@ -233,12 +249,14 @@ const buildExpressionAttributeNames = (updateData) => {
   });
 
   return names;
+
 };
 
 /**
  * Build expression attribute values
  */
 const buildExpressionAttributeValues = (updateData) => {
+
   const values = {
     ':updatedAt': { S: new Date().toISOString() }
   };
@@ -253,14 +271,7 @@ const buildExpressionAttributeValues = (updateData) => {
   }
 
   return values;
-};
 
-/**
- * Convert DynamoDB item format to regular JSON
- */
-const unmarshallDynamoItem = (item) => {
-  if (!item) return null;
-  return unmarshall(item);
 };
 
 // ===== USAGE EXAMPLES =====

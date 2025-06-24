@@ -1,7 +1,7 @@
 import {
-  IoTClient,
-  CreateProvisioningClaimCommand 
-} from "@aws-sdk/client-iot";
+  CreateProvisioningClaimCommand,
+  IoTClient
+} from '@aws-sdk/client-iot';
 
 import { 
   errorApiResponse,
@@ -13,15 +13,15 @@ import {
 export const handler = async (event) => {
 
   validateEnvironmentVariables([
-    'AWS_REGION'
+    'AWS_REGION',
+    'TEMPLATE_NAME'
   ]);
   
   const stage = event.requestContext?.stage;
   const region = process.env.AWS_REGION;
+  const templateName = process.env.TEMPLATE_NAME;
   
   const client = new IoTClient({ region });
-
-  const templateName = 'museum-alert-provisioning-template';
 
   const command = new CreateProvisioningClaimCommand({ templateName });
 
@@ -43,9 +43,9 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
+        `An internal failure prevented the provisionig claim ` +
+        `from being created`,
         500,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
-        'An internal failure prevented the provisionig claim from being created',
         error.message
       );
 
@@ -53,9 +53,8 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
-        400,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
         'An invalid request prevented the provisionig claim from being created',
+        400, 
         error.message
       );
 
@@ -63,9 +62,9 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
+        `A non existing required resource prevented the provisionig claim ` +
+        `from being created`,
         404,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
-        'A non existing required resource prevented the provisionig claim from being created',
         error.message
       );
 
@@ -73,9 +72,9 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
+        `Service unavailability prevented the provisionig claim ` +
+        `from being created`,
         503,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
-        'Service unavailability prevented the provisionig claim from being created',
         error.message
       );
 
@@ -83,9 +82,8 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
-        400,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
         'Service throttling prevented the provisionig claim from being created',
+        400,
         error.message
       );
 
@@ -93,9 +91,9 @@ export const handler = async (event) => {
       
       return errorApiResponse(
         stage,
+        `Unauthorized access prevented the provisionig claim ` +
+        `from being created`,
         401,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
-        'Unauthorized access prevented the provisionig claim from being created',
         error.message
       );
 
@@ -103,9 +101,9 @@ export const handler = async (event) => {
 
       return errorApiResponse(
         stage,
+        `An unexpected error prevented the provisionig claim ` +
+        `from being created`,
         500,
-        'FAILED_PROVISIONING_CLAIM_CREATION',
-        'An unexpected error prevented the provisionig claim from being created',
         error.message
       );
 
