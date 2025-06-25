@@ -29,7 +29,7 @@ export const handler = async (event) => {
     }
     
     // Determine connection state based on eventType
-    const connected = event.eventType === 'connected' ? 1 : 0;
+    const connected = event.eventType === 'connected';
     
     // Look up the thing to get its attributes
     const describeThingCommand = new DescribeThingCommand({ thingName });
