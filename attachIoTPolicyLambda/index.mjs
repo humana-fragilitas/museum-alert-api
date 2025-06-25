@@ -36,7 +36,7 @@ export const handler = async (event, context) => {
   });
   const cognitoIdpClient = new CognitoIdentityProviderClient({
     region: process.env.AWS_REGION
-  });å
+  });
 
   if (!event.requestContext?.authorizer?.claims) {
 

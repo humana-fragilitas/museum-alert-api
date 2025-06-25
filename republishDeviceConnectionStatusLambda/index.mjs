@@ -22,11 +22,10 @@ export const handler = async (event) => {
 
   try {
     
-    const clientId = event.clientId;
-    const thingName = event.thingName;
+    const thingName = event.clientId;
 
     if (!thingName) {
-      throw new Error('Missing thingName in event');
+      throw new Error('Missing client id in event');
     }
     
     // Determine connection state based on eventType
@@ -51,7 +50,7 @@ export const handler = async (event) => {
     const message = {
       type: 101,
       timestamp: event.timestamp,
-      sn: clientId,
+      sn: thingName,
       data: {
         connected: !!connected,
       }
