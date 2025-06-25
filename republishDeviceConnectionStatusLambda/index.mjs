@@ -1,25 +1,31 @@
-// Lambda function to process AWS IoT connection/disconnection events
-// and republish to company-specific topics using AWS SDK v3 with ES modules
+import { DescribeThingCommand, IoTClient } from '@aws-sdk/client-iot';
+import {
+  IoTDataPlaneClient,
+  PublishCommand
+} from '@aws-sdk/client-iot-data-plane';
 
-import { IoTClient, DescribeThingCommand } from '@aws-sdk/client-iot';
-import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+import { 
+  validateEnvironmentVariables
+} from '/opt/nodejs/shared/index.js'; 
 
-// Initialize clients
+
 const iotClient = new IoTClient();
 const iotDataClient = new IoTDataPlaneClient({
   endpoint: `https://${process.env.IOT_ENDPOINT}`
 });
 
 export const handler = async (event) => {
+
+  validateEnvironmentVariables([
+    'IOT_ENDPOINT'
+  ]);
+
   try {
-    console.log('Received event:', JSON.stringify(event));
     
-    // Extract clientId and thingName from the event
-    const clientId = event.clientId;
-    const thingName = event.thingName || clientId; // TO DO: remove clientId fallback
-    
+    const thingName = event.clientId;
+
     if (!thingName) {
-      throw new Error('Missing thingName/clientId in event');
+      throw new Error('Missing client id in event');
     }
     
     // Determine connection state based on eventType
@@ -44,7 +50,7 @@ export const handler = async (event) => {
     const message = {
       type: 101,
       timestamp: event.timestamp,
-      sn: clientId,
+      sn: thingName,
       data: {
         connected: !!connected,
       }
@@ -61,18 +67,24 @@ export const handler = async (event) => {
     await iotDataClient.send(publishCommand);
     console.log(`Successfully published to topic: ${topicName}`);
     
-    // TO DO: considering that this lambda is triggered by IoT connection/disconnection events,
-    // does still make sense to return a response?
+    // TO DO: considering that this lambda is triggered by
+    // IoT connection/disconnection events, does still make
+    // sense to return a response?
 
     return {
       statusCode: 200,
-      body: `Successfully processed event for thing: ${thingName} and company: ${company}`
+      body: `Successfully processed event for thing: ${thingName} ` +
+            `and company: ${company}`
     };
+
   } catch (error) {
+
     console.error('Error processing event:', error);
     return {
       statusCode: 500,
       body: `Error processing event: ${error.message}`
     };
+
   }
+  
 };

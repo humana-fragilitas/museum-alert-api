@@ -1,71 +1,91 @@
-import { IoTClient, AttachPolicyCommand, CreatePolicyCommand } from "@aws-sdk/client-iot";
-import { CognitoIdentityClient, GetIdCommand } from "@aws-sdk/client-cognito-identity";
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from "@aws-sdk/client-cognito-identity-provider";
+import {
+  AttachPolicyCommand,
+  CreatePolicyCommand,
+  IoTClient
+} from '@aws-sdk/client-iot';
+import {
+  CognitoIdentityClient,
+  GetIdCommand
+} from '@aws-sdk/client-cognito-identity';
+import {
+  AdminUpdateUserAttributesCommand,
+  CognitoIdentityProviderClient
+} from '@aws-sdk/client-cognito-identity-provider';
 
 import { 
-  toKebabCase,
   errorApiResponse,
   successApiResponse,
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
 
 
-export const handler = async (event, context, callback) => {
+export const handler = async (event, context) => {
 
-  validateEnvironmentVariables(['IDENTITY_POOL_ID']);
+  validateEnvironmentVariables([
+    'AWS_REGION',
+    'IDENTITY_POOL_ID'
+  ]);
 
   const stage = event.requestContext?.stage;
   const identityPoolId = process.env.IDENTITY_POOL_ID;
-  const iotClient = new IoTClient({ region: process.env.AWS_REGION });
-  const cognitoIdentityClient = new CognitoIdentityClient({ region: process.env.AWS_REGION });
-  const cognitoIdpClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+  const iotClient = new IoTClient({
+    region: process.env.AWS_REGION
+  });
+  const cognitoIdentityClient = new CognitoIdentityClient({
+    region: process.env.AWS_REGION
+  });
+  const cognitoIdpClient = new CognitoIdentityProviderClient({
+    region: process.env.AWS_REGION
+  });
 
   if (!event.requestContext?.authorizer?.claims) {
 
+    console.error('Logged user\'s claims not found; exiting...');
+
     return errorApiResponse(
       stage,
-      401,
-      'UNAUTHORIZED',
-      'Missing or invalid authentication context'
+      'Missing or invalid authentication context',
+      401
     );
 
   }
   
   const userSub = event.requestContext.authorizer.claims.sub;
   const userPoolId = event.requestContext.authorizer.claims.iss.split('/')[3];
-  const accountId = context.invokedFunctionArn.split(":")[4];
-  const region = context.invokedFunctionArn.split(":")[3];
+  const accountId = context.invokedFunctionArn.split(':')[4];
+  const region = context.invokedFunctionArn.split(':')[3];
 
   if (!userSub) {
 
-    console.error('User ID (sub) not found in logged user\'s authentication token; exiting...');
+    console.error(
+      `User ID (sub) not found in logged user\'s authentication token; ` +
+      `exiting...`
+    );
 
     return errorApiResponse(
       stage,
-      401,
-      'INVALID_TOKEN',
-      'User ID (sub) not found in authentication token'
+      'User ID (sub) not found in authentication token',
+      400
     );
 
   }
 
-  const rawCompany = event.requestContext.authorizer.claims['custom:Company'];
+  const company = event.requestContext.authorizer.claims['custom:Company'];
 
-  if (!rawCompany) {
+  if (!company) { 
 
-    console.error('Company information not found in logged user\'s profile; exiting...');
+    console.error(
+      `Company information not found in logged user\'s custom properties; ` +
+      `exiting...`
+    );
 
     return errorApiResponse(
       stage,
-      403,
-      'MISSING_COMPANY',
-      'Company information not found in user profile'
+      'Company information not found in user profile',
+      400
     );
 
   }
-
-  // TO DO: does this still need to be normalized?
-  const company = toKebabCase(rawCompany);
 
   const policyDocument = {
     "Version": "2012-10-17",
@@ -73,7 +93,9 @@ export const handler = async (event, context, callback) => {
       {
         "Effect": "Allow",
         "Action": "iot:Connect",
-        "Resource": `arn:aws:iot:${region}:${accountId}:client/\${cognito-identity.amazonaws.com:sub}`
+        "Resource": 
+          `arn:aws:iot:${region}:${accountId}:client/` +
+          `\${cognito-identity.amazonaws.com:sub}`
       },
       {
         "Effect": "Allow",
@@ -82,14 +104,18 @@ export const handler = async (event, context, callback) => {
           "iot:Receive"
         ],
         "Resource": [
-          `arn:aws:iot:${region}:${accountId}:topic/companies/${company}/events`,
-          `arn:aws:iot:${region}:${accountId}:topicfilter/companies/${company}/events`
+          `arn:aws:iot:${region}:${accountId}:topic/companies/` +
+            `${company}/events`,
+          `arn:aws:iot:${region}:${accountId}:topicfilter/companies/` +
+            `${company}/events`
         ]
       },
       {
         "Effect": "Allow",
         "Action": "iot:Publish",
-        "Resource": `arn:aws:iot:${region}:${accountId}:topic/companies/${company}/devices/*/commands`
+        "Resource": 
+          `arn:aws:iot:${region}:${accountId}:topic/companies/` +
+          `${company}/devices/*/commands`
       }
     ]
   };
@@ -103,7 +129,7 @@ export const handler = async (event, context, callback) => {
 
   try {
 
-    console.log('Attempting to create IoT policy:', policyName);
+    console.log(`Attempting to create IoT policy with name: ${policyName}`);
 
     await iotClient.send(new CreatePolicyCommand(createPolicyParams));
 
@@ -113,16 +139,29 @@ export const handler = async (event, context, callback) => {
 
       console.warn(`Policy ${policyName} already exists, skipping creation.`);
 
+    } else if (error.name === 'ConcurrentModificationException') {
+
+      console.error(`The request was rejected because multiple requests `   +
+                    `to change this object were submitted simultaneously. ` +
+                    `Wait a few minutes and submit your request again; `    +
+                    `error details: `, error);
+
+      return errorApiResponse(
+        stage,
+        'Multiple requests to change this object were submitted simultaneously',
+        400,
+        { policyName, originalError: error.message }
+      );
+
     } else if (error.name === 'InvalidRequestException') {
 
       console.error('Invalid policy configuration:', error);
 
       return errorApiResponse(
         stage,
-        400,
-        'INVALID_POLICY',
         'Invalid policy configuration',
-        { policyName, originalError: error.message }
+        400,
+        { policyName, error: error.message }
       );
 
     } else if (error.name === 'UnauthorizedException') {
@@ -131,9 +170,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        403,
-        'INSUFFICIENT_PERMISSIONS',
-        'Insufficient permissions to create IoT policy'
+        'Insufficient permissions to create IoT policy',
+        403
       );
 
     } else {
@@ -142,9 +180,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        500,
-        'IOT_POLICY_CREATION_FAILED',
         'Failed to create IoT policy',
+        500,
         { policyName, error: error.message }
       );
 
@@ -161,20 +198,22 @@ export const handler = async (event, context, callback) => {
     const identityIdParams = {
         IdentityPoolId: identityPoolId,
         Logins: {
-            [`cognito-idp.${process.env.AWS_REGION}.amazonaws.com/${userPoolId}`]: event.headers.Authorization
+          [`cognito-idp.${process.env.AWS_REGION}.amazonaws.com/${userPoolId}`]:
+              event.headers.Authorization
         }
     };
     
-    const identityIdResponse = await cognitoIdentityClient.send(new GetIdCommand(identityIdParams));
+    const identityIdResponse = await cognitoIdentityClient.send(
+      new GetIdCommand(identityIdParams)
+    );
     identityId = identityIdResponse.IdentityId;
 
     if (!identityId) {
 
       return errorApiResponse(
         stage,
-        500,
-        'IDENTITY_ID_NOT_FOUND',
-        'Failed to retrieve Cognito Identity ID'
+        'Failed to retrieve Cognito Identity ID',
+        400
       );
 
     }
@@ -185,13 +224,13 @@ export const handler = async (event, context, callback) => {
 
     if (error.name === 'InvalidParameterException') {
 
-      console.error('Invalid parameters for Cognito Identity ID retrieval:', error);
+      console.error('Invalid parameters for Cognito Identity ID retrieval:',
+        error);
 
       return errorApiResponse(
         stage,
-        400,
-        'INVALID_IDENTITY_POOL',
-        'Invalid identity pool configuration'
+        'Invalid identity pool configuration',
+        400
       );
 
     } else if (error.name === 'NotAuthorizedException') {
@@ -200,9 +239,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        401,
-        'INVALID_TOKEN',
-        'Invalid or expired authentication token'
+        'Invalid or expired authentication token',
+        401
       );
 
     } else if (error.name === 'ResourceNotFoundException') {
@@ -211,9 +249,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        500,
-        'IDENTITY_POOL_NOT_FOUND',
-        'Cognito Identity Pool not found'
+        'Cognito Identity Pool not found',
+        500
       );
 
     } else {
@@ -222,9 +259,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        500,
-        'IDENTITY_ID_RETRIEVAL_FAILED',
         'Failed to retrieve Cognito Identity ID',
+        500,
         { error: error.message }
       );
 
@@ -235,7 +271,7 @@ export const handler = async (event, context, callback) => {
   try {
 
     const attachPolicyCommand = new AttachPolicyCommand({
-        policyName: policyName,
+        policyName,
         target: identityId
     });
       
@@ -244,51 +280,60 @@ export const handler = async (event, context, callback) => {
   } catch (error) {
       
     if (error.name === 'ResourceNotFoundException') {
+
       return errorApiResponse(
         stage,
-        404,
-        'POLICY_NOT_FOUND',
         'IoT policy not found',
+        404,
         { policyName }
       );
+
     } else if (error.name === 'InvalidRequestException') {
+
       return errorApiResponse(
         stage,
-        400,
-        'INVALID_ATTACH_REQUEST',
         'Invalid policy attachment request',
+        400,
         { policyName, identityId }
       );
+
     } else if (error.name === 'UnauthorizedException') {
+
       return errorApiResponse(
         stage,
-        403,
-        'INSUFFICIENT_PERMISSIONS',
-        'Insufficient permissions to attach IoT policy'
+        'Insufficient permissions to attach IoT policy',
+        403
       );
+
     } else if (error.name === 'ServiceUnavailableException') {
+
       return errorApiResponse(
         stage,
-        503,
-        'IOT_SERVICE_UNAVAILABLE',
-        'IoT service temporarily unavailable'
+        'IoT service temporarily unavailable',
+        503
       );
+
     } else {
-      console.error('Error attaching IoT policy:', error);
+
+      console.error('Error attaching IoT policy:', error); 
+
       return errorApiResponse(
         stage,
-        500,
-        'POLICY_ATTACHMENT_FAILED',
         'Failed to attach IoT policy',
+        500,
         { policyName, identityId, error: error.message }
       );
+
     }
       
   }
 
   try {
 
-    console.log(`Updating user "${userSub}" attribute "custom:hasPolicy" in Cognito User Pool`);
+    console.log(
+      `Updating user '${userSub}' attribute ` + 
+      `'custom:hasPolicy' in Cognito User Pool`
+    );
 
     const updateUserParams = {
       UserPoolId: userPoolId,
@@ -301,9 +346,14 @@ export const handler = async (event, context, callback) => {
       ]
     };
 
-    await cognitoIdpClient.send(new AdminUpdateUserAttributesCommand(updateUserParams));
+    await cognitoIdpClient.send(
+      new AdminUpdateUserAttributesCommand(updateUserParams)
+    );
 
-    console.log(`User "${userSub}" attribute "custom:hasPolicy" updated successfully`);
+    console.log(
+      `User '${userSub}' attribute 'custom:hasPolicy' ` +
+      `updated successfully`
+    );
 
     return successApiResponse(stage, {
       message: 'IoT policy attached and user attribute updated successfully',
@@ -316,13 +366,12 @@ export const handler = async (event, context, callback) => {
 
     if (error.name === 'UserNotFoundException') {
 
-      console.error(`User "${userSub}" not found in Cognito User Pool:`, error);
+      console.error(`User '${userSub}' not found in Cognito User Pool:`, error);
 
       return errorApiResponse(
         stage,
-        404,
-        'USER_NOT_FOUND',
         'User not found in Cognito User Pool',
+        404,
         { username: userSub }
       );
 
@@ -332,9 +381,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        400,
-        'INVALID_USER_ATTRIBUTE',
-        'Invalid user attribute update request'
+        'Invalid user attribute update request',
+        400
       );
 
     } else if (error.name === 'NotAuthorizedException') {
@@ -343,9 +391,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        403,
-        'INSUFFICIENT_PERMISSIONS',
-        'Insufficient permissions to update user attributes'
+        'Insufficient permissions to update user attributes',
+        403
       );
 
     } else {
@@ -354,9 +401,8 @@ export const handler = async (event, context, callback) => {
 
       return errorApiResponse(
         stage,
-        500,
-        'USER_ATTRIBUTE_UPDATE_FAILED',
         'Failed to update user attribute',
+        500,
         { username: userSub, error: error.message }
       );
       

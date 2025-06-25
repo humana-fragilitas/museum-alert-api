@@ -1,27 +1,34 @@
-import { 
-  CognitoIdentityProviderClient, 
-  CreateGroupCommand,
+import {
   AdminAddUserToGroupCommand,
   AdminUpdateUserAttributesCommand,
-  AdminDeleteUserCommand
+  CognitoIdentityProviderClient, 
+  CreateGroupCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import {
-  DynamoDBClient,
-  PutItemCommand,
-  UpdateItemCommand,
   DeleteItemCommand,
-  GetItemCommand
+  DynamoDBClient,
+  GetItemCommand,
+  PutItemCommand,
+  UpdateItemCommand
 } from '@aws-sdk/client-dynamodb';
 
 import { randomUUID } from 'crypto';
 
-// Initialize clients
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+import {
+  validateEnvironmentVariables
+} from '/opt/nodejs/shared/index.js'; 
+
+
+const cognitoClient = new CognitoIdentityProviderClient({
+  region: process.env.AWS_REGION
+});
+const dynamoClient = new DynamoDBClient(
+  { region: process.env.AWS_REGION }
+);
 
 // Environment variables
-const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
+const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
  * Post Confirmation Lambda Trigger
@@ -34,19 +41,17 @@ const COMPANIES_TABLE = process.env.COMPANIES_TABLE || 'companies';
  * 
  * All operations are transactional - if any fail, everything is rolled back
  */
-export const handler = async (event, context) => {
+export const handler = async (event) => {
 
-  console.log('Post Confirmation trigger event:', JSON.stringify(event, null, 2));
-
-  const AWS_REGION = process.env.AWS_REGION || event.invokedFunctionArn?.split(':')[3];
-  const AWS_ACCOUNT_ID = context.invokedFunctionArn.split(':')[4];
+  validateEnvironmentVariables([
+    'AWS_REGION',
+    'COMPANIES_TABLE'
+  ]);
 
   const userPoolId = event.userPoolId;
   const username = event.userName;
   const userAttributes = event.request.userAttributes;
   const userEmail = userAttributes.email;
-
-  // Generate UUID v4 for company ID
   const companyId = randomUUID();
 
   let createdResources = {
@@ -60,7 +65,8 @@ export const handler = async (event, context) => {
 
     console.log(`Setting up company "${companyId}" for user ${userEmail}`);
 
-    // Step 1: Create Company in DynamoDB (single source of truth for company name)
+    // Step 1: Create Company in DynamoDB
+    // (single source of truth for company name)
     await createCompanyInDynamoDB(companyId, '', userEmail, username);
     createdResources.dynamoCompany = true;
     console.log(`✅ Created company in DynamoDB: ${companyId}`);
@@ -80,7 +86,10 @@ export const handler = async (event, context) => {
     createdResources.userInGroup = true;
     console.log(`✅ Added user to group: ${companyId}`);
 
-    console.log(`🎉 Successfully set up company with id ${companyId} for user ${userEmail}`);
+    console.log(
+      `🎉 Successfully set up company with id ${companyId} ` + 
+      `for user ${userEmail}`
+    );
 
     return event;
 
@@ -92,15 +101,23 @@ export const handler = async (event, context) => {
     await rollbackResources(userPoolId, username, companyId, createdResources);
     
     console.error('Company setup failed, but user confirmation will proceed');
+
     return event;
 
   }
+
 };
 
 /**
  * Create company entry in DynamoDB with conditional write for uniqueness
  */
-const createCompanyInDynamoDB = async (companyId, companyName, ownerEmail, ownerUsername) => {
+const createCompanyInDynamoDB = async (
+  companyId,
+  companyName,
+  ownerEmail,
+  ownerUsername
+) => {
+
   const now = new Date().toISOString();
   
   const command = new PutItemCommand({
@@ -133,12 +150,14 @@ const createCompanyInDynamoDB = async (companyId, companyName, ownerEmail, owner
 
   const result = await dynamoClient.send(command);
   return result.Attributes;
+
 };
 
 /**
  * Update user with only company ID - company name is stored in DynamoDB
  */
 const updateUserWithCompanyId = async (userPoolId, username, companyId) => {
+
   const command = new AdminUpdateUserAttributesCommand({
     UserPoolId: userPoolId,
     Username: username,
@@ -151,12 +170,14 @@ const updateUserWithCompanyId = async (userPoolId, username, companyId) => {
   });
 
   await cognitoClient.send(command);
+
 };
 
 /**
  * Create Cognito group without IAM role
  */
 const createCompanyGroup = async (userPoolId, companyId) => {
+
   const command = new CreateGroupCommand({
     UserPoolId: userPoolId,
     GroupName: companyId,
@@ -166,12 +187,14 @@ const createCompanyGroup = async (userPoolId, companyId) => {
   });
 
   await cognitoClient.send(command);
+
 };
 
 /**
  * Add user to company group
  */
 const addUserToGroup = async (userPoolId, username, companyId) => {
+
   const command = new AdminAddUserToGroupCommand({
     UserPoolId: userPoolId,
     Username: username,
@@ -179,15 +202,23 @@ const addUserToGroup = async (userPoolId, username, companyId) => {
   });
 
   await cognitoClient.send(command);
+
 };
 
 /**
  * Rollback created resources in case of failure
  */
-const rollbackResources = async (userPoolId, username, companyId, createdResources) => {
+const rollbackResources = async (
+  userPoolId,
+  username,
+  companyId,
+  createdResources
+) => {
+
   console.log('🔄 Rolling back created resources...');
 
   try {
+
     if (createdResources.userInGroup) {
       console.log('Rolling back: user group membership');
       // Add actual rollback code here if needed
@@ -199,35 +230,44 @@ const rollbackResources = async (userPoolId, username, companyId, createdResourc
     }
 
     if (createdResources.userAttributes) {
-      // Clear the company ID - Fixed attribute name
+
+      // Clear the company ID
       const command = new AdminUpdateUserAttributesCommand({
         UserPoolId: userPoolId,
         Username: username,
         UserAttributes: [
           {
-            Name: 'custom:Company',  // Fixed: was 'custom:CompanyId'
+            Name: 'custom:Company',
             Value: ''
           }
         ]
       });
+
       await cognitoClient.send(command);
       console.log('✅ Rolled back: user company ID');
+
     }
 
     if (createdResources.dynamoCompany) {
+
       const command = new DeleteItemCommand({
         TableName: COMPANIES_TABLE,
         Key: {
           companyId: { S: companyId }
         }
       });
+
       await dynamoClient.send(command);
       console.log('✅ Rolled back: DynamoDB company');
+
     }
 
   } catch (rollbackError) {
+
     console.error('❌ Error during rollback:', rollbackError);
+
   }
+
 };
 
 // ===== ALTERNATIVE: COMPANY MEMBER MANAGEMENT FUNCTIONS =====
@@ -236,7 +276,12 @@ const rollbackResources = async (userPoolId, username, companyId, createdResourc
  * Add a new member to existing company
  * (Use this when inviting users to existing companies)
  */
-export const addMemberToCompany = async (companyId, memberEmail, memberUsername) => {
+export const addMemberToCompany = async (
+  companyId,
+  memberEmail,
+  memberUsername
+) => {
+
   const now = new Date().toISOString();
   
   const command = new UpdateItemCommand({
@@ -244,7 +289,8 @@ export const addMemberToCompany = async (companyId, memberEmail, memberUsername)
     Key: {
       companyId: { S: companyId }
     },
-    UpdateExpression: 'SET #members = list_append(#members, :newMember), #memberCount = #memberCount + :inc, #updatedAt = :now',
+    UpdateExpression: `SET #members = list_append(#members, :newMember), ` +
+                      `#memberCount = #memberCount + :inc, #updatedAt = :now`,
     ExpressionAttributeNames: {
       '#members': 'members',
       '#memberCount': 'memberCount',
@@ -267,12 +313,14 @@ export const addMemberToCompany = async (companyId, memberEmail, memberUsername)
   });
 
   await dynamoClient.send(command);
+
 };
 
 /**
  * Get company details by ID
  */
 export const getCompany = async (companyId) => {
+
   const command = new GetItemCommand({
     TableName: COMPANIES_TABLE,
     Key: {
@@ -282,4 +330,5 @@ export const getCompany = async (companyId) => {
 
   const result = await dynamoClient.send(command);
   return result.Item;
+
 };

@@ -1,169 +1,121 @@
-import { IoTClient, ListThingsCommand } from "@aws-sdk/client-iot";
-//import { createRemoteJWKSet, jwtVerify } from "jose";
+import { IoTClient, ListThingsCommand } from '@aws-sdk/client-iot';
 
-import { 
-  toKebabCase,
+import {
+  validateEnvironmentVariables, 
   getDecodedUserToken
-
 } from '/opt/nodejs/shared/index.js'; 
 
-/*
-export enum AppErrorType {
-    UNAUTHORIZED,
-    FAILED_PROVISIONING_CLAIM_CREATION,
-    FAILED_EXISTING_THING_CHECK,
-    THING_ALREADY_EXISTS,
-    THING_ALREADY_EXISTS_IN_OTHER_ORGANIZATION,
-    GENERIC_ERROR
-};
-*/
 
-export const handler = async (event, context, callback) => {
+export const handler = async (event) => {
   
-  let company = "";
+  validateEnvironmentVariables([
+    'AWS_REGION',
+    'USER_POOL_ID'
+  ]);
   
-  const authToken = event.headers?.Authorization?.replace('Bearer ', '') || 
-                    event.headers?.authorization?.replace('Bearer ', '');
+  const stage = event.requestContext?.stage;
+  const authToken = event.headers?.Authorization;
   const region = process.env.AWS_REGION; 
   const userPoolId = process.env.USER_POOL_ID;
 
-  // Pagination parameters
   const maxResults = parseInt(event.queryStringParameters?.maxResults || '50');
   const nextToken = event.queryStringParameters?.nextToken;
-  
-  // Optional filtering parameters
   const thingTypeName = event.queryStringParameters?.thingTypeName;
-  
-  console.log('-EVENT:---------------');
-  console.log(JSON.stringify(event, 2));
-  console.log('----------------------');
-
-  console.log('-CONTEXT:-------------');
-  console.log(JSON.stringify(context, 2));
-  console.log('----------------------');
-
-  const accountId = context.invokedFunctionArn.split(":")[4];
 
   if (!authToken) {
-    console.log('----------------------');
-    console.log('Received undefined user JWT token; exiting...');
-    console.log('----------------------');
-    return {
-      statusCode: 401,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({
-        errorCode: 0, // UNAUTHORIZED
-        message: "User token unavailable",
-      })
-    };
+
+    console.error('Received undefined user JWT token; exiting...');
+
+    return errorApiResponse(
+      stage,
+      'User token unavailable',
+      401
+    );
+
   }
 
-  const decodedUserToken = await getDecodedUserToken(region, userPoolId, authToken);
+  const decodedUserToken = await getDecodedUserToken(
+    region,
+    userPoolId,
+    authToken
+  );
 
   if (!decodedUserToken) {
-    console.log('----------------------');
-    console.log('User JWT token decoding failed; exiting...');
-    console.log('----------------------');
-    return {
-      statusCode: 401,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({
-        errorCode: 0, // UNAUTHORIZED
-        message: "Failed to decode user token",
-      })
-    };
+
+    console.error('User JWT token decoding failed; exiting...');
+
+    return errorApiResponse(
+      stage,
+      'Failed to decode user token',
+      401
+    );
+
   }
 
-  company = toKebabCase(decodedUserToken["custom:Company"]);
-
-  console.log('-COMPANY:-------------');
-  console.log(company);
-  console.log('----------------------');
+  const company = decodedUserToken['custom:Company'];
 
   if (!company) {
-    console.log('Company not found in user JWT token; exiting...');
-    return {
-      statusCode: 401,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({ 
-        errorCode: 0, // UNAUTHORIZED
-        message: 'Company not found in user JWT token'
-      })
-    };
+
+    console.error('Company not found in user JWT token; exiting...');
+
+    return errorApiResponse(
+      stage,
+      'Company not found in user JWT token',
+      400
+    );
+
+  } else {
+
+    console.log(`Found company: ${company}`);
+
   }
 
   try {
+
     const listResponse = await listThingsByCompany(region, company, {
       maxResults,
       nextToken,
       thingTypeName
     });
 
-    console.log('-LIST RESPONSE:-------');
-    console.log(`Found ${listResponse.things.length} things for company: ${company}`);
-    console.log('----------------------');
+    console.log(
+      `Found ${listResponse.things.length} things ` +
+      `for company: ${company}`
+    );
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({
-        company,
-        things: listResponse.things,
-        totalCount: listResponse.totalCount,
-        nextToken: listResponse.nextToken,
-        hasMore: !!listResponse.nextToken
-      })
-    };
+    return successApiResponse(stage, {
+      company,
+      things: listResponse.things,
+      totalCount: listResponse.totalCount,
+      nextToken: listResponse.nextToken,
+      hasMore: !!listResponse.nextToken
+    });
 
   } catch (error) {
+
     console.error('Error listing things:', error);
-    
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({
-        errorCode: 5, // GENERIC_ERROR
-        message: 'Failed to list things',
-        error: error.message
-      })
-    };
+
+    return errorApiResponse(
+      stage,
+      'Failed to list things by company',
+      500,
+      error.message
+    );
+
   }
+
 };
 
-// HELPER FUNCTIONS
+// Helper functions
 
 async function listThingsByCompany(region, company, options = {}) {
+
   const client = new IoTClient({ region });
   
   const { maxResults = 50, nextToken, thingTypeName } = options;
   
   try {
-    // First approach: Use ListThings with attribute-based filtering
+    // Use ListThings with attribute-based filtering
     const input = {
       maxResults: Math.min(maxResults, 250), // AWS limit is 250
       nextToken,
@@ -175,10 +127,14 @@ async function listThingsByCompany(region, company, options = {}) {
     const command = new ListThingsCommand(input);
     const response = await client.send(command);
     
-    console.log(`Raw response: Found ${response.things?.length || 0} total things`);
+    console.log(
+      `Raw response: Found ${response.things?.length || 0} ` +
+      `total things`
+    );
     
     // Filter things that belong to the specified company
     const companyThings = (response.things || []).filter(thing => {
+
       const thingCompany = thing.attributes?.Company;
       const matches = thingCompany === company;
       
@@ -187,9 +143,13 @@ async function listThingsByCompany(region, company, options = {}) {
       }
       
       return matches;
+
     });
 
-    console.log(`Filtered result: ${companyThings.length} things belong to company ${company}`);
+    console.log(
+      `Filtered result: ${companyThings.length} ` +
+      `things belong to company ${company}`
+    );
 
     // Transform the response to include only relevant information
     const transformedThings = companyThings.map(thing => ({
@@ -209,7 +169,10 @@ async function listThingsByCompany(region, company, options = {}) {
     };
 
   } catch (error) {
+
     console.error('Error in listThingsByCompany:', error);
     throw error;
+
   }
+
 }
