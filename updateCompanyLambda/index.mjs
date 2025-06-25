@@ -86,7 +86,7 @@ export const handler = async (event) => {
   }
 
   try {
-s
+
     const existingCompany = await getCompanyById(companyId);
 
     if (!existingCompany) {
