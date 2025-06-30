@@ -48,7 +48,7 @@ export const handler = async (event) => {
     
     // Prepare the message to publish
     const message = {
-      type: 101,
+      type: 1,
       timestamp: event.timestamp,
       sn: thingName,
       data: {
