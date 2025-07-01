@@ -104,7 +104,7 @@ export const handler = async (event) => {
     );
 
     return successApiResponse(stage, {
-      company: responseData
+      ...responseData
     });
 
   } catch (error) {
