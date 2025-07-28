@@ -93,6 +93,83 @@ chmod +x scripts/inventory.sh
 ./scripts/analyze-resources.sh
 ```
 
+# ==== WHAT ARE THE NPM SCRIPTS MEANT FOR ====
+
+Deployment Scripts
+deploy:dev and deploy:prod
+bashnpm run build && cdk deploy --all --context stage=dev --require-approval never
+
+npm run build: Compiles TypeScript to JavaScript first
+cdk deploy --all: Deploys ALL stacks in your app
+--context stage=dev: Sets the stage variable to "dev" (or "prod")
+
+This makes your app use the dev config from environments.ts (eu-west-2)
+Or prod config (eu-west-1)
+
+
+--require-approval never: Skips confirmation prompts (auto-approves changes)
+
+Result: Creates your entire infrastructure in the specified region
+Destruction Scripts
+destroy:dev and destroy:prod
+bashcdk destroy --all --context stage=dev --force
+
+cdk destroy --all: Deletes ALL stacks and resources
+--context stage=dev: Targets the dev environment (eu-west-2)
+--force: Skips confirmation prompts (immediately destroys)
+
+⚠️ Warning: This permanently deletes all your infrastructure!
+Preview Scripts
+diff:dev and diff:prod
+bashcdk diff --all --context stage=dev
+
+Shows what changes would be made WITHOUT actually deploying
+Compares your CDK code vs. what's currently deployed
+Safe to run - doesn't make any changes
+
+synth:dev and synth:prod
+bashcdk synth --all --context stage=dev
+
+Generates CloudFormation templates from your CDK code
+Shows the raw AWS CloudFormation that would be created
+Saves templates to cdk.out/ directory
+Safe to run - doesn't deploy anything
+
+Bootstrap Scripts
+bootstrap:dev and bootstrap:prod
+bashcdk bootstrap --context stage=dev
+
+One-time setup required per AWS account/region
+Creates S3 bucket and IAM roles needed for CDK deployments
+Only needs to be run once per region
+Safe to run multiple times (idempotent)
+
+Utility Scripts
+inventory
+bash./scripts/inventory.sh
+
+Runs your custom script to document existing AWS resources
+Useful for understanding current infrastructure
+
+Typical Workflow
+bash# 1. Preview what will be created
+npm run diff:dev
+
+# 2. Deploy to test region (eu-west-2)
+npm run deploy:dev
+
+# 3. Test your application...
+
+# 4. If everything works, preview production changes
+npm run diff:prod
+
+# 5. Deploy to production (eu-west-1)
+npm run deploy:prod
+
+# 6. Clean up test environment when done
+npm run destroy:dev
+The --context stage=dev is what tells your app which configuration to use from environments.ts!
+
 # ==== CLAUDE DOCUMENTATION ==== 
 
 # IoT Project - Infrastructure Deployment

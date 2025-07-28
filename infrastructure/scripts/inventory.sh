@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AWS Infrastructure Inventory Script for IoT Project
-# Run this to document your existing infrastructure
+# Fixed AWS Infrastructure Inventory Script for IoT Project
+# Updated for correct AWS CLI syntax
 
 REGION="eu-west-1"
 OUTPUT_DIR="infrastructure-inventory"
@@ -20,6 +20,7 @@ if [ $? -eq 0 ]; then
     echo "✅ AWS credentials working"
     ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
     echo "📋 Account ID: $ACCOUNT_ID"
+    echo "📍 Current region: $(aws configure get region)"
 else
     echo "❌ AWS credentials not configured properly"
     exit 1
@@ -47,18 +48,32 @@ if [ ! -z "$TABLES" ]; then
     done
 fi
 
-# Cognito User Pools
+# Cognito User Pools (fixed syntax)
 echo "  → Cognito User Pools..."
-aws cognito-idp list-user-pools --max-items 20 --region $REGION > $OUTPUT_DIR/cognito-user-pools.json 2>/dev/null || echo "No Cognito pools found"
+aws cognito-idp list-user-pools --max-results 20 --region $REGION > $OUTPUT_DIR/cognito-user-pools.json 2>/dev/null || echo "No Cognito User Pools found"
 
 # Get detailed user pool info
-USER_POOLS=$(aws cognito-idp list-user-pools --max-items 20 --region $REGION --query 'UserPools[].Id' --output text 2>/dev/null)
+USER_POOLS=$(aws cognito-idp list-user-pools --max-results 20 --region $REGION --query 'UserPools[].Id' --output text 2>/dev/null)
 if [ ! -z "$USER_POOLS" ]; then
     echo "    → Getting detailed user pool information..."
     for pool in $USER_POOLS; do
         echo "      • $pool"
         aws cognito-idp describe-user-pool --user-pool-id "$pool" --region $REGION > "$OUTPUT_DIR/cognito-pool-$pool.json" 2>/dev/null
         aws cognito-idp list-user-pool-clients --user-pool-id "$pool" --region $REGION > "$OUTPUT_DIR/cognito-clients-$pool.json" 2>/dev/null
+    done
+fi
+
+# Cognito Identity Pools
+echo "  → Cognito Identity Pools..."
+aws cognito-identity list-identity-pools --max-results 20 --region $REGION > $OUTPUT_DIR/cognito-identity-pools.json 2>/dev/null || echo "No Cognito Identity Pools found"
+
+# Get detailed identity pool info
+IDENTITY_POOLS=$(aws cognito-identity list-identity-pools --max-results 20 --region $REGION --query 'IdentityPools[].IdentityPoolId' --output text 2>/dev/null)
+if [ ! -z "$IDENTITY_POOLS" ]; then
+    echo "    → Getting detailed identity pool information..."
+    for pool in $IDENTITY_POOLS; do
+        echo "      • $pool"
+        aws cognito-identity describe-identity-pool --identity-pool-id "$pool" --region $REGION > "$OUTPUT_DIR/cognito-identity-pool-$pool.json" 2>/dev/null
     done
 fi
 
@@ -109,7 +124,7 @@ echo ""
 echo "📝 Summary of what was found:"
 echo "================================"
 
-# Generate summary
+# Generate summary with proper error handling
 if [ -f "$OUTPUT_DIR/dynamodb-tables.json" ]; then
     TABLE_COUNT=$(cat $OUTPUT_DIR/dynamodb-tables.json | jq -r '.TableNames | length' 2>/dev/null || echo "0")
     echo "🗄️  DynamoDB Tables: $TABLE_COUNT"
@@ -121,8 +136,13 @@ if [ -f "$OUTPUT_DIR/lambda-functions.json" ]; then
 fi
 
 if [ -f "$OUTPUT_DIR/cognito-user-pools.json" ]; then
-    COGNITO_COUNT=$(cat $OUTPUT_DIR/cognito-user-pools.json | jq -r '.UserPools | length' 2>/dev/null || echo "0")
-    echo "👤 Cognito User Pools: $COGNITO_COUNT"
+    USER_POOL_COUNT=$(cat $OUTPUT_DIR/cognito-user-pools.json | jq -r '.UserPools | length' 2>/dev/null || echo "0")
+    echo "👤 Cognito User Pools: $USER_POOL_COUNT"
+fi
+
+if [ -f "$OUTPUT_DIR/cognito-identity-pools.json" ]; then
+    IDENTITY_POOL_COUNT=$(cat $OUTPUT_DIR/cognito-identity-pools.json | jq -r '.IdentityPools | length' 2>/dev/null || echo "0")
+    echo "🆔 Cognito Identity Pools: $IDENTITY_POOL_COUNT"
 fi
 
 if [ -f "$OUTPUT_DIR/apigateway-rest-apis.json" ]; then
@@ -140,4 +160,3 @@ echo "🔍 Next steps:"
 echo "1. Review the JSON files in $OUTPUT_DIR/"
 echo "2. Look for naming patterns and resource relationships"
 echo "3. Use this information to build CDK stacks"
-

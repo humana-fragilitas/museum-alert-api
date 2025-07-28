@@ -1,48 +1,6 @@
-// config/types.ts
-export interface EnvironmentConfig {
-  region: string;
-  account?: string;
-  stage: string;
-  projectName: string;
-  
-  // Service-specific configuration
-  dynamodb: {
-    billingMode: 'PAY_PER_REQUEST' | 'PROVISIONED';
-    pointInTimeRecovery: boolean;
-  };
-  
-  cognito: {
-    userPoolName: string;
-    identityPoolName: string;
-    passwordPolicy: {
-      minLength: number;
-      requireUppercase: boolean;
-      requireLowercase: boolean;
-      requireNumbers: boolean;
-      requireSymbols: boolean;
-    };
-    mfaConfiguration: 'OFF' | 'OPTIONAL' | 'REQUIRED';
-  };
-  
-  lambda: {
-    runtime: string;
-    timeout: number;
-    memorySize: number;
-  };
-  
-  iot: {
-    enableLogging: boolean;
-    logLevel: 'DEBUG' | 'INFO' | 'ERROR' | 'WARN' | 'DISABLED';
-    thingTypeName: string;
-    provisioningTemplateName: string;
-  };
+import { EnvironmentConfig } from './types';
 
-  apiGateway: {
-    apiName: string;
-  };
-}
-
-export const baseConfig = {
+const baseConfig = {
   projectName: 'museum-alert', // Your actual project name
   dynamodb: {
     billingMode: 'PAY_PER_REQUEST' as const,
@@ -83,7 +41,7 @@ export const environments: { [key: string]: EnvironmentConfig } = {
     stage: 'dev',
     iot: {
       ...baseConfig.iot,
-      logLevel: 'DEBUG', // Override just the logLevel, keep other properties
+      logLevel: 'DEBUG',
     },
   },
   
@@ -94,9 +52,6 @@ export const environments: { [key: string]: EnvironmentConfig } = {
     lambda: {
       ...baseConfig.lambda,
       memorySize: 512, // More memory for production
-    },
-    iot: {
-      ...baseConfig.iot, // Keep all IoT properties for prod too
     },
   },
 };
