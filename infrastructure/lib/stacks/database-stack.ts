@@ -1,4 +1,4 @@
-// lib/stacks/database-stack.ts
+import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
@@ -24,10 +24,12 @@ export class DatabaseStack extends BaseStack {
       billingMode: this.config.dynamodb.billingMode === 'PAY_PER_REQUEST' 
         ? dynamodb.BillingMode.PAY_PER_REQUEST 
         : dynamodb.BillingMode.PROVISIONED,
-      pointInTimeRecovery: this.config.dynamodb.pointInTimeRecovery,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: this.config.dynamodb.pointInTimeRecovery,
+      },
       removalPolicy: this.config.stage === 'prod' 
-        ? dynamodb.RemovalPolicy.RETAIN 
-        : dynamodb.RemovalPolicy.DESTROY,
+        ? cdk.RemovalPolicy.RETAIN 
+        : cdk.RemovalPolicy.DESTROY,
     });
 
     // No Global Secondary Indexes needed (your table doesn't have any)

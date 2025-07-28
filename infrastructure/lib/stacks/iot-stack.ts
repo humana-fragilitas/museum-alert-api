@@ -7,7 +7,6 @@ import { BaseStack, BaseStackProps } from './base-stack';
 
 export interface IoTStackProps extends BaseStackProps {
   iamRoles: { [key: string]: iam.Role };
-  lambdaFunctions: { [key: string]: lambda.Function };
 }
 
 export class IoTStack extends BaseStack {
@@ -20,8 +19,8 @@ export class IoTStack extends BaseStack {
 
     this.thingType = this.createThingType();
     this.createIoTPolicies();
-    this.provisioningTemplate = this.createProvisioningTemplate(props.lambdaFunctions);
-    this.createTopicRules(props.lambdaFunctions);
+    this.provisioningTemplate = this.createProvisioningTemplate();
+    // Note: Topic rules will be created separately to avoid circular dependencies
     
     this.applyStandardTags(this);
   }
@@ -117,7 +116,7 @@ export class IoTStack extends BaseStack {
     });
   }
 
-  private createProvisioningTemplate(lambdaFunctions: { [key: string]: lambda.Function }): iot.CfnProvisioningTemplate {
+  private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
     // Create role for provisioning template
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
@@ -186,62 +185,7 @@ export class IoTStack extends BaseStack {
           },
         },
       }),
-      preProvisioningHook: lambdaFunctions.preProvisioningHook ? {
-        targetArn: lambdaFunctions.preProvisioningHook.functionArn,
-        payloadVersion: '2020-04-01',
-      } : undefined,
+      // Note: Pre-provisioning hook will be added by a separate stack to avoid circular dependencies
     });
-  }
-
-  private createTopicRules(lambdaFunctions: { [key: string]: lambda.Function }): void {
-    // Rule for device connection status
-    if (lambdaFunctions.republishDeviceConnectionStatus) {
-      const connectionStatusRule = new iot.CfnTopicRule(this, 'DeviceConnectionStatusRule', {
-        ruleName: 'republishDeviceConnectionStatus',
-        topicRulePayload: {
-          description: 'Republish device connection status events',
-          sql: "SELECT * FROM '$aws/events/presence/connected/+' WHERE startswith(clientId, 'MAS-')",
-          actions: [
-            {
-              lambda: {
-                functionArn: lambdaFunctions.republishDeviceConnectionStatus.functionArn,
-              },
-            },
-          ],
-          ruleDisabled: false,
-        },
-      });
-
-      // Grant permission for IoT to invoke the Lambda
-      lambdaFunctions.republishDeviceConnectionStatus.addPermission('IoTInvokePermission', {
-        principal: new iam.ServicePrincipal('iot.amazonaws.com'),
-        sourceArn: connectionStatusRule.attrArn,
-      });
-    }
-
-    // Rule for adding things to groups
-    if (lambdaFunctions.addThingToGroup) {
-      const addToGroupRule = new iot.CfnTopicRule(this, 'AddThingToGroupRule', {
-        ruleName: 'addThingToGroup',
-        topicRulePayload: {
-          description: 'Add newly created things to appropriate groups',
-          sql: "SELECT * FROM '$aws/events/thing/+/created'",
-          actions: [
-            {
-              lambda: {
-                functionArn: lambdaFunctions.addThingToGroup.functionArn,
-              },
-            },
-          ],
-          ruleDisabled: false,
-        },
-      });
-
-      // Grant permission for IoT to invoke the Lambda
-      lambdaFunctions.addThingToGroup.addPermission('IoTInvokePermissionAddGroup', {
-        principal: new iam.ServicePrincipal('iot.amazonaws.com'),
-        sourceArn: addToGroupRule.attrArn,
-      });
-    }
   }
 }

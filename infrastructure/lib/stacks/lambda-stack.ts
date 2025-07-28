@@ -8,10 +8,7 @@ import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 
 export interface LambdaStackProps extends BaseStackProps {
-  iamRoles: { [key: string]: iam.Role };
-  dynamoTables: { [key: string]: dynamodb.Table };
-  userPool?: cognito.UserPool;
-  identityPool?: cognito.CfnIdentityPool;
+  // Remove all external dependencies to avoid circular references
 }
 
 export class LambdaStack extends BaseStack {
@@ -20,16 +17,39 @@ export class LambdaStack extends BaseStack {
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
-    // Create Lambda functions based on your inventory
-    this.createCompanyFunctions(props.dynamoTables);
-    this.createIoTFunctions(props.identityPool);
-    this.createCognitoTriggerFunctions(props.userPool, props.identityPool, props.dynamoTables);
-    this.createDeviceManagementFunctions(props.userPool);
+    // Create Lambda functions with imported values from other stacks
+    this.createCompanyFunctions();
+    this.createIoTFunctions();
+    this.createCognitoTriggerFunctions();
+    this.createDeviceManagementFunctions();
+    
+    // Export Lambda ARNs for other stacks
+    this.createOutputs();
     
     this.applyStandardTags(this);
   }
 
-  private createCompanyFunctions(tables: { [key: string]: dynamodb.Table }): void {
+  private createOutputs(): void {
+    // Export the postConfirmation Lambda ARN for Cognito triggers
+    if (this.functions.postConfirmationLambda) {
+      new cdk.CfnOutput(this, 'PostConfirmationLambdaArn', {
+        value: this.functions.postConfirmationLambda.functionArn,
+        exportName: `${this.config.projectName}-post-confirmation-arn-${this.config.stage}`,
+      });
+    }
+
+    // Export other important Lambda ARNs
+    Object.entries(this.functions).forEach(([name, func]) => {
+      if (name !== 'postConfirmationLambda') { // Already exported above
+        new cdk.CfnOutput(this, `${name}Arn`, {
+          value: func.functionArn,
+          exportName: `${this.config.projectName}-${name.toLowerCase()}-arn-${this.config.stage}`,
+        });
+      }
+    });
+  }
+
+  private createCompanyFunctions(): void {
     // getCompany function
     this.functions.getCompany = new lambda.Function(this, 'GetCompanyFunction', {
       functionName: 'getCompany',
@@ -43,7 +63,7 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        COMPANIES_TABLE: tables.companies?.tableName || 'companies',
+        COMPANIES_TABLE: 'companies', // Hardcoded table name
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -62,20 +82,20 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        COMPANIES_TABLE: tables.companies?.tableName || 'companies',
+        COMPANIES_TABLE: 'companies', // Hardcoded table name
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
     });
 
-    // Grant DynamoDB permissions
-    if (tables.companies) {
-      tables.companies.grantReadData(this.functions.getCompany);
-      tables.companies.grantReadWriteData(this.functions.updateCompany);
-    }
+    // Grant DynamoDB permissions using IAM policies instead of direct table references
+    this.addDynamoDbPermissions([this.functions.getCompany, this.functions.updateCompany]);
   }
 
-  private createIoTFunctions(identityPool?: cognito.CfnIdentityPool): void {
+  private createIoTFunctions(): void {
+    // Import Identity Pool ID
+    const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
+
     // attachIoTPolicy function
     this.functions.attachIoTPolicy = new lambda.Function(this, 'AttachIoTPolicyFunction', {
       functionName: 'attachIoTPolicy',
@@ -89,7 +109,7 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        IDENTITY_POOL_ID: identityPool?.ref || '',
+        IDENTITY_POOL_ID: identityPoolId,
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -144,7 +164,7 @@ export class LambdaStack extends BaseStack {
       `),
       environment: {
         TEMPLATE_NAME: this.config.iot.provisioningTemplateName,
-        IDENTITY_POOL_ID: identityPool?.ref || '',
+        IDENTITY_POOL_ID: identityPoolId,
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -171,11 +191,7 @@ export class LambdaStack extends BaseStack {
     this.functions.createProvisioningClaim.addToRolePolicy(iotPolicy);
   }
 
-  private createCognitoTriggerFunctions(
-    userPool?: cognito.UserPool,
-    identityPool?: cognito.CfnIdentityPool,
-    tables?: { [key: string]: dynamodb.Table }
-  ): void {
+  private createCognitoTriggerFunctions(): void {
     // postConfirmationLambda function
     this.functions.postConfirmationLambda = new lambda.Function(this, 'PostConfirmationLambdaFunction', {
       functionName: 'postConfirmationLambda',
@@ -189,8 +205,8 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        IDENTITY_POOL_ID: identityPool?.ref || '',
-        COMPANIES_TABLE: tables?.companies?.tableName || 'companies',
+        IDENTITY_POOL_ID: 'PLACEHOLDER_IDENTITY_POOL_ID', // Will be updated later
+        COMPANIES_TABLE: 'companies', // Hardcoded table name
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -212,17 +228,56 @@ export class LambdaStack extends BaseStack {
       memorySize: this.config.lambda.memorySize,
     });
 
-    // Grant permissions
-    if (tables?.companies) {
-      tables.companies.grantReadWriteData(this.functions.postConfirmationLambda);
-    }
-
-    if (userPool) {
-      userPool.grant(this.functions.deleteUserLambda, 'cognito-idp:AdminDeleteUser');
-    }
+    // Grant permissions using IAM policies
+    this.addDynamoDbPermissions([this.functions.postConfirmationLambda]);
+    this.addCognitoPermissions([this.functions.deleteUserLambda]);
   }
 
-  private createDeviceManagementFunctions(userPool?: cognito.UserPool): void {
+  // Helper method to add DynamoDB permissions without direct table references
+  private addDynamoDbPermissions(functions: lambda.Function[]): void {
+    const dynamoPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:GetItem',
+        'dynamodb:PutItem',
+        'dynamodb:UpdateItem',
+        'dynamodb:DeleteItem',
+        'dynamodb:Query',
+        'dynamodb:Scan',
+      ],
+      resources: [
+        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
+      ],
+    });
+
+    functions.forEach(func => {
+      func.addToRolePolicy(dynamoPolicy);
+    });
+  }
+
+  // Helper method to add Cognito permissions
+  private addCognitoPermissions(functions: lambda.Function[]): void {
+    const cognitoPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'cognito-idp:AdminDeleteUser',
+        'cognito-idp:AdminGetUser',
+        'cognito-idp:ListUsers',
+      ],
+      resources: [
+        `arn:aws:cognito-idp:${this.config.region}:*:userpool/*`,
+      ],
+    });
+
+    functions.forEach(func => {
+      func.addToRolePolicy(cognitoPolicy);
+    });
+  }
+
+  private createDeviceManagementFunctions(): void {
+    // Import User Pool ID
+    const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
+
     // getThingsByCompany function
     this.functions.getThingsByCompany = new lambda.Function(this, 'GetThingsByCompanyFunction', {
       functionName: 'getThingsByCompany',
@@ -236,7 +291,7 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        USER_POOL_ID: userPool?.userPoolId || '',
+        USER_POOL_ID: userPoolId,
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -255,7 +310,7 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        USER_POOL_ID: userPool?.userPoolId || '',
+        USER_POOL_ID: userPoolId,
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
@@ -274,7 +329,7 @@ export class LambdaStack extends BaseStack {
         };
       `),
       environment: {
-        USER_POOL_ID: userPool?.userPoolId || '',
+        USER_POOL_ID: userPoolId,
       },
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,

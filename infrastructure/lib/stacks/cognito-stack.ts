@@ -22,21 +22,26 @@ export class CognitoStack extends BaseStack {
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
     
+    // Export values for other stacks to import
+    this.createOutputs();
+    
     this.applyStandardTags(this);
   }
 
-  // Method to add Lambda triggers after Lambda functions are created
-  public addLambdaTriggers(postConfirmationFunction: lambda.IFunction): void {
-    // Add the post confirmation trigger
-    const cfnUserPool = this.userPool.node.defaultChild as cognito.CfnUserPool;
-    cfnUserPool.lambdaConfig = {
-      postConfirmation: postConfirmationFunction.functionArn,
-    };
+  private createOutputs(): void {
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: this.userPool.userPoolId,
+      exportName: `${this.config.projectName}-user-pool-id-${this.config.stage}`,
+    });
 
-    // Grant Cognito permission to invoke the Lambda
-    postConfirmationFunction.addPermission('CognitoTriggerPermission', {
-      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
-      sourceArn: this.userPool.userPoolArn,
+    new cdk.CfnOutput(this, 'UserPoolArn', {
+      value: this.userPool.userPoolArn,
+      exportName: `${this.config.projectName}-user-pool-arn-${this.config.stage}`,
+    });
+
+    new cdk.CfnOutput(this, 'IdentityPoolId', {
+      value: this.identityPool.ref,
+      exportName: `${this.config.projectName}-identity-pool-id-${this.config.stage}`,
     });
   }
 

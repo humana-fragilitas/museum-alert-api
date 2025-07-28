@@ -7,6 +7,7 @@ import { DatabaseStack } from '../lib/stacks/database-stack';
 import { CognitoStack } from '../lib/stacks/cognito-stack';
 import { LambdaStack } from '../lib/stacks/lambda-stack';
 import { IoTStack } from '../lib/stacks/iot-stack';
+import { TriggersStack } from '../lib/stacks/triggers-stack';
 import { ApiGatewayStack } from '../lib/stacks/api-gateway-stack';
 
 const app = new cdk.App();
@@ -42,17 +43,12 @@ const museumAlertCognitoStack = new CognitoStack(app, `${config.projectName}-cog
 const museumAlertLambdaStack = new LambdaStack(app, `${config.projectName}-lambda-${config.stage}`, {
   ...stackProps,
   config,
-  iamRoles: museumAlertIamStack.roles,
-  dynamoTables: museumAlertDatabaseStack.tables,
-  userPool: museumAlertCognitoStack.userPool,
-  identityPool: museumAlertCognitoStack.identityPool,
 });
 
 const museumAlertIotStack = new IoTStack(app, `${config.projectName}-iot-${config.stage}`, {
   ...stackProps,
   config,
   iamRoles: museumAlertIamStack.roles,
-  lambdaFunctions: museumAlertLambdaStack.functions,
 });
 
 const museumAlertApiStack = new ApiGatewayStack(app, `${config.projectName}-api-${config.stage}`, {
@@ -62,18 +58,24 @@ const museumAlertApiStack = new ApiGatewayStack(app, `${config.projectName}-api-
   userPool: museumAlertCognitoStack.userPool,
 });
 
-// Add Lambda triggers to Cognito after Lambda stack is created
-if (museumAlertLambdaStack.functions.postConfirmationLambda) {
-  museumAlertCognitoStack.addLambdaTriggers(museumAlertLambdaStack.functions.postConfirmationLambda);
-}
+// Triggers stack - handles ALL cross-stack wiring using imports/exports
+const museumAlertTriggersStack = new TriggersStack(app, `${config.projectName}-triggers-${config.stage}`, {
+  ...stackProps,
+  config,
+});
 
-// Add dependencies
+// DEPENDENCIES - CAREFULLY ANALYZED:
+// 1. Core stacks are independent (IAM, Database, Cognito, IoT)
+// 2. Lambda imports from Cognito (via CloudFormation exports) - NO direct dependency
+// 3. API Gateway depends on Lambda + Cognito (direct references, not circular) 
+// 4. Triggers stack imports from all others (via exports) - NO circular dependencies
+
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
 museumAlertCognitoStack.addDependency(museumAlertIamStack);
-museumAlertLambdaStack.addDependency(museumAlertDatabaseStack);
-museumAlertLambdaStack.addDependency(museumAlertCognitoStack);
-museumAlertLambdaStack.addDependency(museumAlertIamStack);
-museumAlertIotStack.addDependency(museumAlertLambdaStack);
+// Lambda stack imports from Cognito via exports - NO dependency needed
 museumAlertIotStack.addDependency(museumAlertIamStack);
 museumAlertApiStack.addDependency(museumAlertLambdaStack);
 museumAlertApiStack.addDependency(museumAlertCognitoStack);
+// Triggers stack imports from all via exports - depends on all exporters
+museumAlertTriggersStack.addDependency(museumAlertCognitoStack);
+museumAlertTriggersStack.addDependency(museumAlertLambdaStack);

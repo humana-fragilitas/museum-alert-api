@@ -159,19 +159,8 @@ export class ApiGatewayStack extends BaseStack {
       );
     }
 
-    // Add API Gateway execution role permissions for Lambda functions
-    this.grantApiGatewayInvokePermissions(lambdaFunctions);
-  }
-
-  private grantApiGatewayInvokePermissions(lambdaFunctions: { [key: string]: lambda.Function }): void {
-    const apiGatewayPrincipal = new iam.ServicePrincipal('apigateway.amazonaws.com');
-
-    Object.values(lambdaFunctions).forEach((func) => {
-      func.addPermission(`ApiGatewayInvoke-${func.functionName}`, {
-        principal: apiGatewayPrincipal,
-        sourceArn: this.api.arnForExecuteApi(),
-      });
-    });
+    // Note: Removed grantApiGatewayInvokePermissions call to avoid circular dependency
+    // Lambda permissions are automatically granted by LambdaIntegration
   }
 
   // Output important values for frontend configuration
