@@ -1,0 +1,175 @@
+{
+    "logGroups": [
+        {
+            "logGroupName": "/aws/iot/rules/forward_device_connection_status",
+            "creationTime": 1742305073875,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/iot/rules/forward_device_connection_status:*",
+            "storedBytes": 624063,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/iot/rules/forward_device_connection_status"
+        },
+        {
+            "logGroupName": "/aws/iot/rules/forward_to_company_events",
+            "creationTime": 1741616991513,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/iot/rules/forward_to_company_events:*",
+            "storedBytes": 15505860,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/iot/rules/forward_to_company_events"
+        },
+        {
+            "logGroupName": "/aws/lambda/addThingToGroup",
+            "creationTime": 1752572794325,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/addThingToGroup:*",
+            "storedBytes": 6101,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/addThingToGroup"
+        },
+        {
+            "logGroupName": "/aws/lambda/attachIoTPolicy",
+            "creationTime": 1720705654509,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/attachIoTPolicy:*",
+            "storedBytes": 265487,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/attachIoTPolicy"
+        },
+        {
+            "logGroupName": "/aws/lambda/checkThingExists",
+            "creationTime": 1748425008593,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/checkThingExists:*",
+            "storedBytes": 106844,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/checkThingExists"
+        },
+        {
+            "logGroupName": "/aws/lambda/createProvisioningClaim",
+            "creationTime": 1721998295689,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/createProvisioningClaim:*",
+            "storedBytes": 151739,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/createProvisioningClaim"
+        },
+        {
+            "logGroupName": "/aws/lambda/createThing",
+            "creationTime": 1721133541332,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/createThing:*",
+            "storedBytes": 53014,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/createThing"
+        },
+        {
+            "logGroupName": "/aws/lambda/getCompany",
+            "creationTime": 1750057010406,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/getCompany:*",
+            "storedBytes": 311869,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/getCompany"
+        },
+        {
+            "logGroupName": "/aws/lambda/getThingsByCompany",
+            "creationTime": 1748589767214,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/getThingsByCompany:*",
+            "storedBytes": 68540,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/getThingsByCompany"
+        },
+        {
+            "logGroupName": "/aws/lambda/postAuthenticationLambda",
+            "creationTime": 1749471315643,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postAuthenticationLambda:*",
+            "storedBytes": 14435,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postAuthenticationLambda"
+        },
+        {
+            "logGroupName": "/aws/lambda/postConfirmationLambda",
+            "creationTime": 1749040437764,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postConfirmationLambda:*",
+            "storedBytes": 889,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postConfirmationLambda"
+        },
+        {
+            "logGroupName": "/aws/lambda/postConfirmationTrigger",
+            "creationTime": 1741679284264,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postConfirmationTrigger:*",
+            "storedBytes": 11880,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/postConfirmationTrigger"
+        },
+        {
+            "logGroupName": "/aws/lambda/preProvisioningHook",
+            "creationTime": 1722604234569,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preProvisioningHook:*",
+            "storedBytes": 750281,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preProvisioningHook"
+        },
+        {
+            "logGroupName": "/aws/lambda/preSignupHookLambda",
+            "creationTime": 1749033338942,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preSignupHookLambda:*",
+            "storedBytes": 0,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preSignupHookLambda"
+        },
+        {
+            "logGroupName": "/aws/lambda/preTokenGenerationLambdaTrigger",
+            "creationTime": 1741358732389,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preTokenGenerationLambdaTrigger:*",
+            "storedBytes": 0,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/preTokenGenerationLambdaTrigger"
+        },
+        {
+            "logGroupName": "/aws/lambda/republishDeviceConnectionStatus",
+            "creationTime": 1742308674167,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/republishDeviceConnectionStatus:*",
+            "storedBytes": 950668,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/republishDeviceConnectionStatus"
+        },
+        {
+            "logGroupName": "/aws/lambda/updateCompany",
+            "creationTime": 1749820472627,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/updateCompany:*",
+            "storedBytes": 11564,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:/aws/lambda/updateCompany"
+        },
+        {
+            "logGroupName": "AWSIotLogsV2",
+            "creationTime": 1749464402175,
+            "retentionInDays": 3,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:eu-west-1:767398097786:log-group:AWSIotLogsV2:*",
+            "storedBytes": 154427,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:eu-west-1:767398097786:log-group:AWSIotLogsV2"
+        }
+    ]
+}

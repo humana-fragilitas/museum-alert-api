@@ -1,0 +1,196 @@
+{
+    "policies": [
+        {
+            "policyName": "museum-alert-policy",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/museum-alert-policy"
+        },
+        {
+            "policyName": "museum-alert-iot-user-policy",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/museum-alert-iot-user-policy"
+        },
+        {
+            "policyName": "company-iot-policy-fe78c71a-38c9-4cf4-a708-e97eb5eb4ead",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-fe78c71a-38c9-4cf4-a708-e97eb5eb4ead"
+        },
+        {
+            "policyName": "company-iot-policy-fe77280a-ca23-4e50-b4bd-140822da7cb3",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-fe77280a-ca23-4e50-b4bd-140822da7cb3"
+        },
+        {
+            "policyName": "company-iot-policy-f74cff10-3ca6-4603-818a-8100ee64e849",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-f74cff10-3ca6-4603-818a-8100ee64e849"
+        },
+        {
+            "policyName": "company-iot-policy-ebebc906-0d97-4d04-bfe9-98410cb91d77",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-ebebc906-0d97-4d04-bfe9-98410cb91d77"
+        },
+        {
+            "policyName": "company-iot-policy-e744d3d7-c47a-4c2f-825c-8496315707a7",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-e744d3d7-c47a-4c2f-825c-8496315707a7"
+        },
+        {
+            "policyName": "company-iot-policy-e08f4cc7-0a5f-41b5-a3da-f59a0d446c2d",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-e08f4cc7-0a5f-41b5-a3da-f59a0d446c2d"
+        },
+        {
+            "policyName": "company-iot-policy-d9944a1e-e667-4bea-8bf5-03a0b01e888c",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-d9944a1e-e667-4bea-8bf5-03a0b01e888c"
+        },
+        {
+            "policyName": "company-iot-policy-b8b1a3e3-56a4-4dfe-915f-f7cbc544ad41",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-b8b1a3e3-56a4-4dfe-915f-f7cbc544ad41"
+        },
+        {
+            "policyName": "company-iot-policy-b3b8b30e-2064-4425-8de2-dd036158d27e",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-b3b8b30e-2064-4425-8de2-dd036158d27e"
+        },
+        {
+            "policyName": "company-iot-policy-ad67c755-a98c-4852-9f0b-6b85190a8e2d",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-ad67c755-a98c-4852-9f0b-6b85190a8e2d"
+        },
+        {
+            "policyName": "company-iot-policy-acme",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-acme"
+        },
+        {
+            "policyName": "company-iot-policy-9e3671f0-0c03-4d52-98a5-8630b36e3c8e",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-9e3671f0-0c03-4d52-98a5-8630b36e3c8e"
+        },
+        {
+            "policyName": "company-iot-policy-95f19e0c-ec73-4adb-8fab-a62b8859cfcd",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-95f19e0c-ec73-4adb-8fab-a62b8859cfcd"
+        },
+        {
+            "policyName": "company-iot-policy-94148620-bc0f-4e39-bba0-2752b2dc1a67",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-94148620-bc0f-4e39-bba0-2752b2dc1a67"
+        },
+        {
+            "policyName": "company-iot-policy-832524a1-375f-4e23-8481-0b2c36136189",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-832524a1-375f-4e23-8481-0b2c36136189"
+        },
+        {
+            "policyName": "company-iot-policy-779530a0-5631-4455-9152-cbf5890f5bbe",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-779530a0-5631-4455-9152-cbf5890f5bbe"
+        },
+        {
+            "policyName": "company-iot-policy-773f51cf-2041-4309-a634-9032f0a48229",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-773f51cf-2041-4309-a634-9032f0a48229"
+        },
+        {
+            "policyName": "company-iot-policy-718e1be5-4bd1-491b-bf9e-774de6e01297",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-718e1be5-4bd1-491b-bf9e-774de6e01297"
+        },
+        {
+            "policyName": "company-iot-policy-6050b996-d588-453b-a85d-964e1d5ed05a",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-6050b996-d588-453b-a85d-964e1d5ed05a"
+        },
+        {
+            "policyName": "company-iot-policy-51278c7b-4b84-476f-af20-eb14e381e11d",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-51278c7b-4b84-476f-af20-eb14e381e11d"
+        },
+        {
+            "policyName": "company-iot-policy-4ee73fb9-5dc1-4fce-9637-1fbe3b7ca609",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-4ee73fb9-5dc1-4fce-9637-1fbe3b7ca609"
+        },
+        {
+            "policyName": "company-iot-policy-39e08e9e-7f58-43e3-92bd-19269ac0087b",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-39e08e9e-7f58-43e3-92bd-19269ac0087b"
+        },
+        {
+            "policyName": "company-iot-policy-3848bd37-fa23-4a44-a298-34cb77ce55d6",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-3848bd37-fa23-4a44-a298-34cb77ce55d6"
+        },
+        {
+            "policyName": "company-iot-policy-33f1022e-c807-4a1c-a2d6-d670acff444d",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-33f1022e-c807-4a1c-a2d6-d670acff444d"
+        },
+        {
+            "policyName": "company-iot-policy-331717f1-13e1-44f8-9d2a-cc9832a5e0cd",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-331717f1-13e1-44f8-9d2a-cc9832a5e0cd"
+        },
+        {
+            "policyName": "company-iot-policy-2d7e2560-422d-496e-87a1-ca69cc786168",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-2d7e2560-422d-496e-87a1-ca69cc786168"
+        },
+        {
+            "policyName": "company-iot-policy-22f19d74-3b37-43ad-a7d6-1e74153f4d75",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-22f19d74-3b37-43ad-a7d6-1e74153f4d75"
+        },
+        {
+            "policyName": "company-iot-policy-140b0396-81b7-430b-8257-70f967c392a7",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-140b0396-81b7-430b-8257-70f967c392a7"
+        },
+        {
+            "policyName": "company-iot-policy-0f7b47bb-c105-46f8-9a4c-2d890315670a",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/company-iot-policy-0f7b47bb-c105-46f8-9a4c-2d890315670a"
+        },
+        {
+            "policyName": "F98DE27FC0AD71693469D3D4643D6F113D35C8ED7C94B1988B69FF5598E55A61",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/F98DE27FC0AD71693469D3D4643D6F113D35C8ED7C94B1988B69FF5598E55A61"
+        },
+        {
+            "policyName": "F10C60EB5B9A285C0DB1910FFC323C81903CAFCE4E89A72FD56C9877D49BF674",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/F10C60EB5B9A285C0DB1910FFC323C81903CAFCE4E89A72FD56C9877D49BF674"
+        },
+        {
+            "policyName": "EE70A2D98092454F8527FA6B82918ADBA493AF8F48ADB4E8E993100BAFD4508B",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/EE70A2D98092454F8527FA6B82918ADBA493AF8F48ADB4E8E993100BAFD4508B"
+        },
+        {
+            "policyName": "CF1AA36B38AEC2B76B4C480586273211492F4F4B1F2A27B05675B6CFF67A2E93",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/CF1AA36B38AEC2B76B4C480586273211492F4F4B1F2A27B05675B6CFF67A2E93"
+        },
+        {
+            "policyName": "B2B5E6EB5841B249C7D39A01AF5E3BF52088FC4C3F6A5BC184307950D46DC453",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/B2B5E6EB5841B249C7D39A01AF5E3BF52088FC4C3F6A5BC184307950D46DC453"
+        },
+        {
+            "policyName": "B1250FF763ADDA2803204B0478FA48F49B43B6C3409A320C764DA939FD79DD75",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/B1250FF763ADDA2803204B0478FA48F49B43B6C3409A320C764DA939FD79DD75"
+        },
+        {
+            "policyName": "9B5AD5ECE4BB17149191B6DBEAEBECE928C8F84B59F9FC02CC96D1DAA18300A7",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/9B5AD5ECE4BB17149191B6DBEAEBECE928C8F84B59F9FC02CC96D1DAA18300A7"
+        },
+        {
+            "policyName": "7FE07A8C07115ACC74D4319089A6F86E896166D16C008B62CAA61E9710CB3E4E",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/7FE07A8C07115ACC74D4319089A6F86E896166D16C008B62CAA61E9710CB3E4E"
+        },
+        {
+            "policyName": "7988A9C01A88B77FF5CD0186B6062A1C6578D882B2837A3C7BB843C11C738FF0",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/7988A9C01A88B77FF5CD0186B6062A1C6578D882B2837A3C7BB843C11C738FF0"
+        },
+        {
+            "policyName": "6CBBBE6D43DB9D085A3EFD8873F1950439E64AB3AE945B9C4AA03ACA8053E61C",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/6CBBBE6D43DB9D085A3EFD8873F1950439E64AB3AE945B9C4AA03ACA8053E61C"
+        },
+        {
+            "policyName": "6424609ABCA14E54E741D9A617F90591957DD7E21A66376B84BD2EA7F73CDB86",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/6424609ABCA14E54E741D9A617F90591957DD7E21A66376B84BD2EA7F73CDB86"
+        },
+        {
+            "policyName": "3F70C9CEF5924D0F3F8E3BC26F05B2EDA2B44A575DCC6F0E9D2460A9BCF92A7A",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/3F70C9CEF5924D0F3F8E3BC26F05B2EDA2B44A575DCC6F0E9D2460A9BCF92A7A"
+        },
+        {
+            "policyName": "369323B7B092258BDA8F3A64C3C36EED288E069804420149DA26015E30BC06AA",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/369323B7B092258BDA8F3A64C3C36EED288E069804420149DA26015E30BC06AA"
+        },
+        {
+            "policyName": "2FA6705F2F5A4552A69778481AB32E699597CE09C464CE1C757A407DDC33059A",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/2FA6705F2F5A4552A69778481AB32E699597CE09C464CE1C757A407DDC33059A"
+        },
+        {
+            "policyName": "177881404BEB52DFF57DC68605C41AADB65C35F94601A6021D9402F332C590BB",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/177881404BEB52DFF57DC68605C41AADB65C35F94601A6021D9402F332C590BB"
+        },
+        {
+            "policyName": "12D1725681F127DBA57036CF33CABF1F0DF98CC045BC2787E4969884F14D4B7C",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/12D1725681F127DBA57036CF33CABF1F0DF98CC045BC2787E4969884F14D4B7C"
+        },
+        {
+            "policyName": "00B3030CCB37C3654D7C4B25D8EA106794853AD754EDFFE1E511C065A4BEE15F",
+            "policyArn": "arn:aws:iot:eu-west-1:767398097786:policy/00B3030CCB37C3654D7C4B25D8EA106794853AD754EDFFE1E511C065A4BEE15F"
+        }
+    ]
+}

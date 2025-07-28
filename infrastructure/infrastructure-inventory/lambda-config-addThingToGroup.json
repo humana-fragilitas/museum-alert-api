@@ -1,0 +1,38 @@
+{
+    "FunctionName": "addThingToGroup",
+    "FunctionArn": "arn:aws:lambda:eu-west-1:767398097786:function:addThingToGroup",
+    "Runtime": "nodejs22.x",
+    "Role": "arn:aws:iam::767398097786:role/service-role/addThingToGroup-role-sgey24jh",
+    "Handler": "index.handler",
+    "CodeSize": 1831,
+    "Description": "",
+    "Timeout": 3,
+    "MemorySize": 128,
+    "LastModified": "2025-07-15T09:38:27.000+0000",
+    "CodeSha256": "6whcxeX4fbn4oAGByb2fupdqKbBU09vJEBZ6kjyZojU=",
+    "Version": "$LATEST",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "2aebc47d-aaad-47c0-91cd-7cf21d57844c",
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:eu-west-1::runtime:3319d7328c2e45f97764ca1c004269cab40102f3f1c188ec9a509d8e9c5db574"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/addThingToGroup"
+    }
+}

@@ -1,0 +1,49 @@
+{
+    "FunctionName": "getCompany",
+    "FunctionArn": "arn:aws:lambda:eu-west-1:767398097786:function:getCompany",
+    "Runtime": "nodejs22.x",
+    "Role": "arn:aws:iam::767398097786:role/service-role/getCompany-role-6qbxn8vj",
+    "Handler": "index.handler",
+    "CodeSize": 2482,
+    "Description": "",
+    "Timeout": 3,
+    "MemorySize": 128,
+    "LastModified": "2025-06-30T12:37:15.000+0000",
+    "CodeSha256": "z8YhFdQezBDgWBZq/FxU7VOVmLLSnux34tOJqEK082M=",
+    "Version": "$LATEST",
+    "Environment": {
+        "Variables": {
+            "COMPANIES_TABLE": "companies"
+        }
+    },
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "468bf7d3-77ff-495c-9b65-136559d4f5ca",
+    "Layers": [
+        {
+            "Arn": "arn:aws:lambda:eu-west-1:767398097786:layer:lambdaHelpersLayer:15",
+            "CodeSize": 114691
+        }
+    ],
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:eu-west-1::runtime:3319d7328c2e45f97764ca1c004269cab40102f3f1c188ec9a509d8e9c5db574"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/getCompany"
+    }
+}

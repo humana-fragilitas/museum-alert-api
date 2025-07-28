@@ -1,0 +1,50 @@
+{
+    "FunctionName": "postConfirmationLambda",
+    "FunctionArn": "arn:aws:lambda:eu-west-1:767398097786:function:postConfirmationLambda",
+    "Runtime": "nodejs22.x",
+    "Role": "arn:aws:iam::767398097786:role/service-role/postConfirmationLambda-role-2uaxzypf",
+    "Handler": "index.handler",
+    "CodeSize": 5205,
+    "Description": "",
+    "Timeout": 3,
+    "MemorySize": 128,
+    "LastModified": "2025-06-24T13:26:50.000+0000",
+    "CodeSha256": "eiKDCGMHcNTVo+INjmd6c8kv3m8xRJD1OM9yABWi0+g=",
+    "Version": "$LATEST",
+    "Environment": {
+        "Variables": {
+            "IDENTITY_POOL_ID": "eu-west-1:974597c1-d749-43ec-9afa-721e9508dfa7",
+            "COMPANIES_TABLE": "companies"
+        }
+    },
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "8bee52ad-a832-4a57-9a1b-567f72e725aa",
+    "Layers": [
+        {
+            "Arn": "arn:aws:lambda:eu-west-1:767398097786:layer:lambdaHelpersLayer:15",
+            "CodeSize": 114691
+        }
+    ],
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:eu-west-1::runtime:3319d7328c2e45f97764ca1c004269cab40102f3f1c188ec9a509d8e9c5db574"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/postConfirmationLambda"
+    }
+}

@@ -1,0 +1,38 @@
+{
+    "FunctionName": "deleteUserLambda",
+    "FunctionArn": "arn:aws:lambda:eu-west-1:767398097786:function:deleteUserLambda",
+    "Runtime": "nodejs22.x",
+    "Role": "arn:aws:iam::767398097786:role/service-role/deleteUserLambda-role-admacprb",
+    "Handler": "index.handler",
+    "CodeSize": 3693,
+    "Description": "",
+    "Timeout": 3,
+    "MemorySize": 128,
+    "LastModified": "2025-06-24T13:21:11.000+0000",
+    "CodeSha256": "Rlt1meRk5E8ob9mpzAIIO3hqv1H7W2Q+/3b8MrJ8QQU=",
+    "Version": "$LATEST",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "6eba46d5-512b-4cdd-a99c-8502933027fb",
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:eu-west-1::runtime:3319d7328c2e45f97764ca1c004269cab40102f3f1c188ec9a509d8e9c5db574"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/deleteUserLambda"
+    }
+}

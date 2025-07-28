@@ -1,0 +1,36 @@
+{
+    "Table": {
+        "AttributeDefinitions": [
+            {
+                "AttributeName": "companyId",
+                "AttributeType": "S"
+            }
+        ],
+        "TableName": "companies",
+        "KeySchema": [
+            {
+                "AttributeName": "companyId",
+                "KeyType": "HASH"
+            }
+        ],
+        "TableStatus": "ACTIVE",
+        "CreationDateTime": "2025-06-06T11:58:05.851000+02:00",
+        "ProvisionedThroughput": {
+            "NumberOfDecreasesToday": 0,
+            "ReadCapacityUnits": 0,
+            "WriteCapacityUnits": 0
+        },
+        "TableSizeBytes": 1993,
+        "ItemCount": 5,
+        "TableArn": "arn:aws:dynamodb:eu-west-1:767398097786:table/companies",
+        "TableId": "dd770498-7eaf-46aa-9040-a12af9b20949",
+        "BillingModeSummary": {
+            "BillingMode": "PAY_PER_REQUEST",
+            "LastUpdateToPayPerRequestDateTime": "2025-06-06T11:58:05.851000+02:00"
+        },
+        "TableClassSummary": {
+            "TableClass": "STANDARD"
+        },
+        "DeletionProtectionEnabled": false
+    }
+}
