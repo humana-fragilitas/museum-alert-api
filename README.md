@@ -91,6 +91,26 @@ chmod +x scripts/inventory.sh
 
 # Then analyze the patterns
 ./scripts/analyze-resources.sh
+
+# Then, before deploying
+# Configure a new profile for CDK
+aws configure --profile cdk-deploy
+# Enter the Access Key ID and Secret for your CDK user
+# Region: eu-west-2
+# Output format: json
+```
+
+# Clean up and redeploy
+
+```bash
+# Clean up the failed stack
+npm run destroy:dev
+
+# Verify all stacks are gone
+aws cloudformation list-stacks --region eu-west-2 --stack-status-filter DELETE_COMPLETE --query 'StackSummaries[?contains(StackName, `museum-alert`)].StackName'
+
+# Deploy again with proper dependencies
+npm run deploy:dev
 ```
 
 # ==== WHAT ARE THE NPM SCRIPTS MEANT FOR ====
@@ -169,6 +189,132 @@ npm run deploy:prod
 # 6. Clean up test environment when done
 npm run destroy:dev
 The --context stage=dev is what tells your app which configuration to use from environments.ts!
+
+# ==== BOOTSTRAP ====
+
+No, bootstrapping is NOT dangerous at all! It's actually a required prerequisite for CDK deployments. Let me explain what it does:
+What CDK Bootstrap Does ✅
+CDK bootstrap is a one-time setup that creates essential infrastructure CDK needs to work:
+Creates Safe Infrastructure:
+
+S3 bucket - For storing CloudFormation templates and Lambda code
+IAM roles - For CDK to deploy resources on your behalf
+SSM parameters - For version tracking
+ECR repository - For container images (if needed)
+
+What It DOESN'T Do:
+
+❌ Doesn't create your application resources (Lambda, API Gateway, etc.)
+❌ Doesn't modify existing resources
+❌ Doesn't cost much (S3 bucket + minimal IAM roles)
+❌ Doesn't affect your production environment (this is dev-only)
+
+The Bootstrap Command Breakdown
+bashnpm run bootstrap:dev
+Translates to:
+bashcdk bootstrap --context stage=dev
+Which runs:
+bashcdk bootstrap aws://767398097786/eu-west-2
+What You'll See
+Bootstrap creates resources with names like:
+
+cdk-hnb659fds-assets-767398097786-eu-west-2 (S3 bucket)
+cdk-hnb659fds-deploy-role-767398097786-eu-west-2 (IAM role)
+A few SSM parameters
+
+Why You Need It
+Without bootstrap: CDK has nowhere to store your Lambda code and CloudFormation templates, so deployment fails.
+With bootstrap: CDK uploads your code to the S3 bucket, then deploys from there.
+Cost Impact 💰
+Minimal cost:
+
+S3 bucket: ~$0.02/month (nearly free)
+IAM roles: Free
+SSM parameters: Free
+
+Is It Safe? 🛡️
+Absolutely yes:
+
+✅ Standard AWS best practice
+✅ Used by millions of CDK developers
+✅ Only creates support infrastructure
+✅ Can be deleted anytime with cdk bootstrap --cleanup
+
+Recommendation
+Just run it! It's completely safe and necessary:
+bashnpm run bootstrap:dev
+npm run deploy:dev
+The bootstrap only needs to run once per region per account. After that, you can deploy as many CDK apps as you want in that region.
+Would you like to proceed with bootstrapping?RiprovaABWhen I am done with testing, how do I reverse this bootstrap?ModificaGreat question! Here are the ways to clean up the bootstrap resources when you're done:
+Option 1: Automatic Cleanup (Easiest) ✅
+CDK v2 has a built-in cleanup command:
+bashcdk bootstrap --toolkit-stack-name CDKToolkit --cleanup
+Or for your specific region:
+bashcdk bootstrap --context stage=dev --cleanup
+This removes all bootstrap resources automatically.
+Option 2: Manual Cleanup (More Control) 🔧
+If the automatic cleanup doesn't work or you want more control:
+1. Delete the CloudFormation Stack
+bashaws cloudformation delete-stack --stack-name CDKToolkit --region eu-west-2
+2. Empty and Delete S3 Bucket
+bash# List the bucket name first
+aws s3 ls | grep cdk-hnb659fds-assets
+
+# Empty the bucket (replace with actual bucket name)
+aws s3 rm s3://cdk-hnb659fds-assets-767398097786-eu-west-2 --recursive
+
+# Delete the bucket
+aws s3 rb s3://cdk-hnb659fds-assets-767398097786-eu-west-2
+Option 3: AWS Console (Visual) 🖱️
+
+CloudFormation Console:
+
+Go to CloudFormation in eu-west-2
+Find stack named "CDKToolkit"
+Delete it
+
+
+S3 Console:
+
+Go to S3
+Find bucket cdk-hnb659fds-assets-*
+Empty and delete it
+
+
+
+What Gets Cleaned Up 🧹
+Bootstrap cleanup removes:
+
+✅ S3 bucket and all contents
+✅ IAM roles (cdk-*-deploy-role, cdk-*-file-publishing-role, etc.)
+✅ SSM parameters (/cdk-bootstrap/*/version)
+✅ ECR repository (if created)
+
+Important Notes ⚠️
+
+Don't cleanup while stacks exist - First destroy your app stacks:
+bashnpm run destroy:dev
+# Then cleanup bootstrap
+cdk bootstrap --cleanup
+
+Per-region cleanup - Bootstrap is per-region, so clean up each region separately
+Shared bootstrap - If you have other CDK apps in the same region, don't cleanup until all are destroyed
+
+Complete Cleanup Sequence 📝
+When you're completely done testing:
+bash# 1. Destroy your application stacks
+npm run destroy:dev
+
+# 2. Clean up bootstrap
+cdk bootstrap --context stage=dev --cleanup
+
+# 3. Verify cleanup (should show no CDK resources)
+aws cloudformation list-stacks --region eu-west-2 --query 'StackSummaries[?contains(StackName, `CDK`) || contains(StackName, `cdk`)]'
+Cost During Testing 💰
+Don't worry about costs during testing:
+
+Bootstrap resources cost ~$0.02/month
+Your actual app resources (Lambda, API Gateway, etc.) cost more, but are deleted with npm run destroy:dev
 
 # ==== CLAUDE DOCUMENTATION ==== 
 

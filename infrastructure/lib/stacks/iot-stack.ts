@@ -116,7 +116,7 @@ export class IoTStack extends BaseStack {
     });
   }
 
-  private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
+private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
     // Create role for provisioning template
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
@@ -150,10 +150,13 @@ export class IoTStack extends BaseStack {
           ThingName: {
             Type: 'String',
           },
-          SerialNumber: {
+          Company: {
             Type: 'String',
           },
-          CompanyId: {
+          Region: {
+            Type: 'String',
+          },
+          AccountId: {
             Type: 'String',
           },
         },
@@ -162,26 +165,70 @@ export class IoTStack extends BaseStack {
             Type: 'AWS::IoT::Thing',
             Properties: {
               ThingName: { Ref: 'ThingName' },
-              ThingTypeName: this.thingType.thingTypeName,
               AttributePayload: {
-                companyId: { Ref: 'CompanyId' },
-                serialNumber: { Ref: 'SerialNumber' },
+                Company: { Ref: 'Company' },
               },
+              ThingTypeName: this.config.iot.thingTypeName,
+            },
+            OverrideSettings: {
+              AttributePayload: 'REPLACE',
+              ThingTypeName: 'REPLACE',
             },
           },
           certificate: {
             Type: 'AWS::IoT::Certificate',
             Properties: {
-              CertificateSigningRequest: { Ref: 'CSR' },
+              CertificateId: { Ref: 'AWS::IoT::Certificate::Id' },
               Status: 'ACTIVE',
             },
           },
           policy: {
             Type: 'AWS::IoT::Policy',
             Properties: {
-              PolicyName: `\${ThingName}-policy`,
-              PolicyDocument: this.policies.devicePolicy.policyDocument,
+              PolicyDocument: {
+                'Fn::Sub': [
+                  JSON.stringify({
+                    Version: '2012-10-17',
+                    Statement: [
+                      {
+                        Effect: 'Allow',
+                        Action: 'iot:Connect',
+                        Resource: 'arn:aws:iot:${Region}:${AccountId}:client/${ThingName}',
+                      },
+                      {
+                        Effect: 'Allow',
+                        Action: 'iot:Subscribe',
+                        Resource: 'arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands',
+                      },
+                      {
+                        Effect: 'Allow',
+                        Action: 'iot:Receive',
+                        Resource: 'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands',
+                      },
+                      {
+                        Effect: 'Allow',
+                        Action: 'iot:Publish',
+                        Resource: [
+                          'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events',
+                          'arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands/ack',
+                        ],
+                      },
+                    ],
+                  }),
+                  {
+                    ThingName: { Ref: 'ThingName' },
+                    Company: { Ref: 'Company' },
+                    Region: { Ref: 'Region' },
+                    AccountId: { Ref: 'AccountId' },
+                  },
+                ],
+              },
             },
+          },
+        },
+        DeviceConfiguration: {
+          company: {
+            Ref: 'Company',
           },
         },
       }),

@@ -26,8 +26,11 @@ export class TriggersStack extends BaseStack {
     const userPool = cognito.UserPool.fromUserPoolArn(this, 'ImportedUserPool', userPoolArn);
 
     // Get the existing Lambda function by ARN (read-only reference)  
-    const postConfirmationFunction = lambda.Function.fromFunctionArn(
-        this, 'ImportedPostConfirmationLambda', postConfirmationLambdaArn,
+    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(
+        this, 'ImportedPostConfirmationLambda', {
+            functionArn: postConfirmationLambdaArn,
+            sameEnvironment: true
+        }
     );
 
     // Create a custom resource to add the Lambda trigger
@@ -111,8 +114,18 @@ export class TriggersStack extends BaseStack {
     const addThingArn = cdk.Fn.importValue(`${this.config.projectName}-addthingtogroup-arn-${this.config.stage}`);
 
     // Get Lambda functions by ARN
-    const republishFunction = lambda.Function.fromFunctionArn(this, 'ImportedRepublishFunction', republishArn);
-    const addThingFunction = lambda.Function.fromFunctionArn(this, 'ImportedAddThingFunction', addThingArn);
+    const republishFunction = lambda.Function.fromFunctionAttributes(
+  this, 'ImportedRepublishFunction', {
+    functionArn: republishArn,
+    sameEnvironment: true
+  }
+);
+    const addThingFunction = lambda.Function.fromFunctionAttributes(
+  this, 'ImportedAddThingFunction', {
+    functionArn: addThingArn,
+    sameEnvironment: true
+  }
+);
 
     // Rule for device connection status
     const connectionStatusRule = new iot.CfnTopicRule(this, 'DeviceConnectionStatusRule', {

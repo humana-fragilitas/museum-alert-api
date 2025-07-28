@@ -1,8 +1,10 @@
-import { IoTClient, ListThingsCommand } from '@aws-sdk/client-iot';
+import { IoTClient, ListThingsInThingGroupCommand } from '@aws-sdk/client-iot';
 
 import {
   validateEnvironmentVariables, 
-  getDecodedUserToken
+  getDecodedUserToken,
+  errorApiResponse,
+  successApiResponse
 } from '/opt/nodejs/shared/index.js'; 
 
 
@@ -20,7 +22,8 @@ export const handler = async (event) => {
 
   const maxResults = parseInt(event.queryStringParameters?.maxResults || '50');
   const nextToken = event.queryStringParameters?.nextToken;
-  const thingTypeName = event.queryStringParameters?.thingTypeName;
+  // Note: thingTypeName filtering is not directly supported by ListThingsInThingGroup
+  // You would need to implement additional filtering if this is required
 
   if (!authToken) {
 
@@ -72,10 +75,9 @@ export const handler = async (event) => {
 
   try {
 
-    const listResponse = await listThingsByCompany(region, company, {
+    const listResponse = await listThingsByCompanyGroup(region, company, {
       maxResults,
-      nextToken,
-      thingTypeName
+      nextToken
     });
 
     console.log(
@@ -85,6 +87,7 @@ export const handler = async (event) => {
 
     return successApiResponse(stage, {
       company,
+      thingGroupName: listResponse.thingGroupName,
       things: listResponse.things,
       totalCount: listResponse.totalCount,
       nextToken: listResponse.nextToken,
@@ -94,6 +97,20 @@ export const handler = async (event) => {
   } catch (error) {
 
     console.error('Error listing things:', error);
+
+    // Handle case where thing group doesn't exist
+    if (error.name === 'ResourceNotFoundException') {
+      console.log(`Thing group for company ${company} not found - returning empty result`);
+      
+      return successApiResponse(stage, {
+        company,
+        thingGroupName: `Company-Group-${company}`,
+        things: [],
+        totalCount: 0,
+        nextToken: null,
+        hasMore: false
+      });
+    }
 
     return errorApiResponse(
       stage,
@@ -108,69 +125,118 @@ export const handler = async (event) => {
 
 // Helper functions
 
-async function listThingsByCompany(region, company, options = {}) {
+async function listThingsByCompanyGroup(region, company, options = {}) {
 
   const client = new IoTClient({ region });
   
-  const { maxResults = 50, nextToken, thingTypeName } = options;
+  const { maxResults = 50, nextToken } = options;
+  const thingGroupName = `Company-Group-${company}`;
   
   try {
-    // Use ListThings with attribute-based filtering
+
     const input = {
+      thingGroupName,
       maxResults: Math.min(maxResults, 250), // AWS limit is 250
-      nextToken,
-      ...(thingTypeName && { thingTypeName })
+      ...(nextToken && { nextToken })
     };
 
-    console.log(`Listing things for company: ${company} with params:`, input);
+    console.log(`Listing things in group: ${thingGroupName} with params:`, input);
     
-    const command = new ListThingsCommand(input);
+    const command = new ListThingsInThingGroupCommand(input);
     const response = await client.send(command);
     
     console.log(
-      `Raw response: Found ${response.things?.length || 0} ` +
-      `total things`
+      `Found ${response.things?.length || 0} things ` +
+      `in group ${thingGroupName}`
     );
     
-    // Filter things that belong to the specified company
-    const companyThings = (response.things || []).filter(thing => {
-
-      const thingCompany = thing.attributes?.Company;
-      const matches = thingCompany === company;
-      
-      if (matches) {
-        console.log(`✅ Thing ${thing.thingName} belongs to company ${company}`);
-      }
-      
-      return matches;
-
-    });
-
-    console.log(
-      `Filtered result: ${companyThings.length} ` +
-      `things belong to company ${company}`
-    );
-
-    // Transform the response to include only relevant information
-    const transformedThings = companyThings.map(thing => ({
-      thingName: thing.thingName,
-      thingTypeName: thing.thingTypeName,
-      thingArn: thing.thingArn,
-      attributes: thing.attributes,
-      version: thing.version,
-      creationDate: thing.creationDate
-    }));
+    // Note: ListThingsInThingGroupCommand returns thing names only
+    // If you need full thing details (attributes, etc.), you would need to
+    // call DescribeThing for each thing name returned
+    const thingNames = response.things || [];
 
     return {
-      things: transformedThings,
-      totalCount: companyThings.length,
-      nextToken: response.nextToken,
-      rawTotalCount: response.things?.length || 0
+      thingGroupName,
+      things: thingNames,
+      totalCount: thingNames.length,
+      nextToken: response.nextToken
     };
 
   } catch (error) {
 
-    console.error('Error in listThingsByCompany:', error);
+    console.error('Error in listThingsByCompanyGroup:', error);
+    throw error;
+
+  }
+
+}
+
+// Optional: Enhanced version that fetches full thing details
+async function listThingsByCompanyGroupWithDetails(region, company, options = {}) {
+
+  const client = new IoTClient({ region });
+  
+  const { maxResults = 50, nextToken } = options;
+  const thingGroupName = `Company-Group-${company}`;
+  
+  try {
+
+    const input = {
+      thingGroupName,
+      maxResults: Math.min(maxResults, 250),
+      ...(nextToken && { nextToken })
+    };
+
+    console.log(`Listing things in group: ${thingGroupName} with params:`, input);
+    
+    const command = new ListThingsInThingGroupCommand(input);
+    const response = await client.send(command);
+    
+    const thingNames = response.things || [];
+    
+    // If you need full thing details, uncomment and modify the following:
+    /*
+    const { DescribeThingCommand } = await import('@aws-sdk/client-iot');
+    
+    const thingDetails = await Promise.all(
+      thingNames.map(async (thingName) => {
+        try {
+          const describeCommand = new DescribeThingCommand({ thingName });
+          const thingResponse = await client.send(describeCommand);
+          
+          return {
+            thingName: thingResponse.thingName,
+            thingTypeName: thingResponse.thingTypeName,
+            thingArn: thingResponse.thingArn,
+            attributes: thingResponse.attributes,
+            version: thingResponse.version,
+            creationDate: thingResponse.creationDate
+          };
+        } catch (error) {
+          console.warn(`Failed to describe thing ${thingName}:`, error);
+          return { thingName, error: 'Failed to fetch details' };
+        }
+      })
+    );
+    
+    return {
+      thingGroupName,
+      things: thingDetails,
+      totalCount: thingDetails.length,
+      nextToken: response.nextToken
+    };
+    */
+    
+    return {
+      thingGroupName,
+      things: thingNames,
+      totalCount: thingNames.length,
+      nextToken: response.nextToken
+    };
+
+  } catch (error) {
+
+    console.error('Error in listThingsByCompanyGroupWithDetails:', error);
     throw error;
 
   }

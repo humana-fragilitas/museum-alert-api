@@ -64,18 +64,24 @@ const museumAlertTriggersStack = new TriggersStack(app, `${config.projectName}-t
   config,
 });
 
-// DEPENDENCIES - CAREFULLY ANALYZED:
-// 1. Core stacks are independent (IAM, Database, Cognito, IoT)
-// 2. Lambda imports from Cognito (via CloudFormation exports) - NO direct dependency
-// 3. API Gateway depends on Lambda + Cognito (direct references, not circular) 
-// 4. Triggers stack imports from all others (via exports) - NO circular dependencies
+// DEPENDENCIES - CORRECTED FOR PROPER DEPLOYMENT ORDER:
+// 1. Core stacks (IAM, Database, Cognito, IoT) - Foundation layer
+// 2. Lambda stack - MUST wait for Cognito exports to be available
+// 3. API Gateway stack - Needs Lambda and Cognito to exist
+// 4. Triggers stack - Needs Lambda exports to be available
 
+// Foundation dependencies
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
 museumAlertCognitoStack.addDependency(museumAlertIamStack);
-// Lambda stack imports from Cognito via exports - NO dependency needed
 museumAlertIotStack.addDependency(museumAlertIamStack);
+
+// CRITICAL: Lambda imports Cognito exports - needs explicit dependency
+museumAlertLambdaStack.addDependency(museumAlertCognitoStack);
+
+// API Gateway dependencies - needs both Lambda and Cognito
 museumAlertApiStack.addDependency(museumAlertLambdaStack);
 museumAlertApiStack.addDependency(museumAlertCognitoStack);
-// Triggers stack imports from all via exports - depends on all exporters
+
+// Triggers stack dependencies - imports from Cognito and Lambda
 museumAlertTriggersStack.addDependency(museumAlertCognitoStack);
 museumAlertTriggersStack.addDependency(museumAlertLambdaStack);

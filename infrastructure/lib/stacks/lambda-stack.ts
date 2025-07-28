@@ -55,13 +55,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'getCompany',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'getCompany' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../getCompanyLambda'),
       environment: {
         COMPANIES_TABLE: 'companies', // Hardcoded table name
       },
@@ -74,13 +68,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'updateCompany',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'updateCompany' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../updateCompanyLambda'),
       environment: {
         COMPANIES_TABLE: 'companies', // Hardcoded table name
       },
@@ -101,13 +89,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'attachIoTPolicy',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'attachIoTPolicy' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../attachIoTPolicyLambda'),
       environment: {
         IDENTITY_POOL_ID: identityPoolId,
       },
@@ -120,13 +102,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'addThingToGroup',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'addThingToGroup' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../addThingToGroup'),
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
     });
@@ -136,13 +112,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'republishDeviceConnectionStatus',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'republishDeviceConnectionStatus' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../republishDeviceConnectionStatusLambda'),
       environment: {
         IOT_ENDPOINT: `avo0w7o1tlck1-ats.iot.${this.config.region}.amazonaws.com`, // Your actual endpoint pattern
       },
@@ -155,13 +125,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'createProvisioningClaim',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'createProvisioningClaim' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../createProvisioningClaimLambda'),
       environment: {
         TEMPLATE_NAME: this.config.iot.provisioningTemplateName,
         IDENTITY_POOL_ID: identityPoolId,
@@ -197,13 +161,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'postConfirmationLambda',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return event; // Cognito triggers must return the event
-        };
-      `),
+      code: lambda.Code.fromAsset('../postConfirmationLambda'),
       environment: {
         IDENTITY_POOL_ID: 'PLACEHOLDER_IDENTITY_POOL_ID', // Will be updated later
         COMPANIES_TABLE: 'companies', // Hardcoded table name
@@ -217,13 +175,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'deleteUserLambda',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'deleteUserLambda' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../deleteUserLambda'),
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
     });
@@ -283,13 +235,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'getThingsByCompany',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'getThingsByCompany' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../getThingsByCompanyLambda'),
       environment: {
         USER_POOL_ID: userPoolId,
       },
@@ -302,13 +248,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'preProvisioningHook',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { allowProvisioning: true }; // IoT provisioning hook response
-        };
-      `),
+      code: lambda.Code.fromAsset('../preProvisioningHookLambda'),
       environment: {
         USER_POOL_ID: userPoolId,
       },
@@ -321,13 +261,7 @@ export class LambdaStack extends BaseStack {
       functionName: 'checkThingExists',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        // Placeholder - replace with your actual code
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return { statusCode: 200, body: JSON.stringify({ message: 'checkThingExists' }) };
-        };
-      `),
+      code: lambda.Code.fromAsset('../checkThingExistsLambda'),
       environment: {
         USER_POOL_ID: userPoolId,
       },
