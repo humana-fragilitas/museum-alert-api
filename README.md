@@ -113,6 +113,42 @@ aws cloudformation list-stacks --region eu-west-2 --stack-status-filter DELETE_C
 npm run deploy:dev
 ```
 
+If ```npm run destroy:dev```fails:
+
+aws cloudformation list-stacks \
+  --query "StackSummaries[?StackStatus=='CREATE_COMPLETE'].StackName" \
+  --profile cdk-deploy \
+  --region eu-west-2
+
+And deleted stacks one by one:
+
+```cdk destroy museum-alert-cognito-dev --context stage=dev --force```
+
+Or...
+
+```bash
+#!/bin/bash
+
+# Set AWS profile and region
+AWS_PROFILE=cdk-deploy
+REGION=eu-west-2
+CONTEXT=stage=dev
+
+# Get stack names with CREATE_COMPLETE status
+STACKS=$(aws cloudformation list-stacks \
+  --profile $AWS_PROFILE \
+  --region $REGION \
+  --query "StackSummaries[?StackStatus=='CREATE_COMPLETE'].StackName" \
+  --output text)
+
+# Loop through stacks and destroy them one by one
+for STACK in $STACKS; do
+  echo "Destroying stack: $STACK"
+  cdk destroy $STACK --context $CONTEXT --force --profile $AWS_PROFILE
+done
+```
+
+
 # ==== WHAT ARE THE NPM SCRIPTS MEANT FOR ====
 
 Deployment Scripts
