@@ -26,7 +26,7 @@ export class ApiGatewayStack extends BaseStack {
     this.applyStandardTags(this);
   }
 
-  private createRestApi(): apigateway.RestApi {
+private createRestApi(): apigateway.RestApi {
     return new apigateway.RestApi(this, 'MuseumAlertApi', {
       restApiName: this.config.apiGateway.apiName,
       description: 'Museum Alert API for IoT device management',
@@ -51,10 +51,10 @@ export class ApiGatewayStack extends BaseStack {
         throttlingRateLimit: 100, // requests per second
         throttlingBurstLimit: 200, // burst capacity
         
-        // Enable CloudWatch logging
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
-        metricsEnabled: true,
+        // DISABLE CloudWatch logging to avoid role requirement
+        loggingLevel: apigateway.MethodLoggingLevel.OFF,
+        dataTraceEnabled: false,
+        metricsEnabled: true, // Keep metrics, disable logs
       },
       
       // Binary media types

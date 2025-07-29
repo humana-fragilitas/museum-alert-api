@@ -67,12 +67,8 @@ export class CognitoStack extends BaseStack {
         requireSymbols: this.config.cognito.passwordPolicy.requireSymbols,
       },
       
-      // MFA configuration
-      mfa: this.config.cognito.mfaConfiguration === 'REQUIRED' 
-        ? cognito.Mfa.REQUIRED 
-        : this.config.cognito.mfaConfiguration === 'OPTIONAL'
-        ? cognito.Mfa.OPTIONAL
-        : cognito.Mfa.OFF,
+      // MFA disabled for simplicity
+      mfa: cognito.Mfa.OFF,
       
       // Account recovery
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
@@ -134,31 +130,14 @@ export class CognitoStack extends BaseStack {
       userPool: this.userPool,
       userPoolClientName: `${this.config.projectName}-client`,
       
-      // Auth flows
+      // Auth flows for Amplify UI
       authFlows: {
         adminUserPassword: true,
         userPassword: true,
         userSrp: true,
       },
       
-      // Option 1: Remove OAuth entirely if you don't need hosted UI/social login
-      // (No oAuth property = no OAuth configuration)
-      
-      // Option 2: Minimal OAuth for future flexibility
-      oAuth: {
-        flows: {
-          authorizationCodeGrant: false, // Disable if not using hosted UI
-          implicitCodeGrant: false,      // Disable if not using hosted UI
-        },
-        scopes: [
-          cognito.OAuthScope.EMAIL,
-          cognito.OAuthScope.OPENID,
-          cognito.OAuthScope.PROFILE,
-        ],
-        // Minimal callback URLs - required even if unused
-        callbackUrls: ['http://localhost:3000/'],
-        logoutUrls: ['http://localhost:3000/'],
-      },
+      // NO OAuth configuration - not needed for Amplify UI
       
       // Token validity
       accessTokenValidity: cdk.Duration.hours(1),
