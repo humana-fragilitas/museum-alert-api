@@ -95,6 +95,30 @@ export class CognitoStack extends BaseStack {
           mutable: true,
         },
       },
+
+      // Custom attributes
+      customAttributes: {
+        Company: new cognito.StringAttribute({ 
+          minLen: 3, 
+          maxLen: 36, 
+          mutable: true 
+        }),
+        hasPolicy: new cognito.NumberAttribute({ 
+          min: 0, 
+          max: 1, 
+          mutable: true 
+        }),
+        isProfessional: new cognito.NumberAttribute({ 
+          min: 0, 
+          max: 1, 
+          mutable: true 
+        }),
+        secondaryCompany: new cognito.StringAttribute({ 
+          minLen: 3, 
+          maxLen: 36, 
+          mutable: true 
+        }),
+      },
       
       // Removal policy
       removalPolicy: this.config.stage === 'prod' 
@@ -117,25 +141,23 @@ export class CognitoStack extends BaseStack {
         userSrp: true,
       },
       
-      // OAuth configuration for Amplify
+      // Option 1: Remove OAuth entirely if you don't need hosted UI/social login
+      // (No oAuth property = no OAuth configuration)
+      
+      // Option 2: Minimal OAuth for future flexibility
       oAuth: {
         flows: {
-          authorizationCodeGrant: true,
-          implicitCodeGrant: true,
+          authorizationCodeGrant: false, // Disable if not using hosted UI
+          implicitCodeGrant: false,      // Disable if not using hosted UI
         },
         scopes: [
           cognito.OAuthScope.EMAIL,
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: [
-          'http://localhost:3000/', // For local development
-          // Add your production URLs here
-        ],
-        logoutUrls: [
-          'http://localhost:3000/', // For local development
-          // Add your production URLs here
-        ],
+        // Minimal callback URLs - required even if unused
+        callbackUrls: ['http://localhost:3000/'],
+        logoutUrls: ['http://localhost:3000/'],
       },
       
       // Token validity

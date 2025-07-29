@@ -17,94 +17,32 @@ export class TriggersStack extends BaseStack {
     this.applyStandardTags(this);
   }
 
-  private addCognitoTriggers(): void {
+private addCognitoTriggers(): void {
     // Import values from other stacks
     const userPoolArn = cdk.Fn.importValue(`${this.config.projectName}-user-pool-arn-${this.config.stage}`);
     const postConfirmationLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-post-confirmation-arn-${this.config.stage}`);
 
-    // Get the existing User Pool by ARN (read-only reference)
-    const userPool = cognito.UserPool.fromUserPoolArn(this, 'ImportedUserPool', userPoolArn);
-
-    // Get the existing Lambda function by ARN (read-only reference)  
-    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(
-        this, 'ImportedPostConfirmationLambda', {
-            functionArn: postConfirmationLambdaArn,
-            sameEnvironment: true
-        }
-    );
-
-    // Create a custom resource to add the Lambda trigger
-    const triggerUpdater = new lambda.Function(this, 'CognitoTriggerUpdater', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        const AWS = require('aws-sdk');
-        const cognito = new AWS.CognitoIdentityServiceProvider();
-        
-        exports.handler = async (event, context) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          
-          const { RequestType, ResourceProperties } = event;
-          const { UserPoolId, PostConfirmationLambdaArn } = ResourceProperties;
-          
-          if (RequestType === 'Delete') {
-            // Remove the trigger
-            try {
-              await cognito.updateUserPool({
-                UserPoolId: UserPoolId,
-                LambdaConfig: {}
-              }).promise();
-            } catch (error) {
-              console.log('Error removing trigger:', error);
-            }
-            return { PhysicalResourceId: 'cognito-trigger-updater' };
-          }
-          
-          try {
-            // Add the post-confirmation trigger
-            await cognito.updateUserPool({
-              UserPoolId: UserPoolId,
-              LambdaConfig: {
-                PostConfirmation: PostConfirmationLambdaArn
-              }
-            }).promise();
-            
-            console.log('Successfully added PostConfirmation trigger');
-            return { PhysicalResourceId: 'cognito-trigger-updater' };
-          } catch (error) {
-            console.error('Error updating User Pool:', error);
-            throw error;
-          }
-        };
-      `),
-      timeout: cdk.Duration.minutes(2),
-    });
-
-    // Grant permissions to update Cognito User Pool
-    triggerUpdater.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'cognito-idp:UpdateUserPool',
-        'cognito-idp:DescribeUserPool',
-      ],
-      resources: [userPoolArn],
-    }));
-
-    // Create custom resource
-    new cdk.CustomResource(this, 'CognitoTriggerResource', {
-      serviceToken: triggerUpdater.functionArn,
-      properties: {
-        UserPoolId: userPool.userPoolId,
-        PostConfirmationLambdaArn: postConfirmationLambdaArn,
-        // Force update when function ARN changes
-        FunctionVersion: new Date().toISOString(),
-      },
+    // Get the existing Lambda function by ARN
+    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedPostConfirmationLambda', {
+      functionArn: postConfirmationLambdaArn,
+      sameEnvironment: true
     });
 
     // Grant Cognito permission to invoke the Lambda
     postConfirmationFunction.addPermission('CognitoTriggerPermission', {
       principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
       sourceArn: userPoolArn,
+    });
+
+    // Add helpful outputs for manual configuration
+    new cdk.CfnOutput(this, 'PostConfirmationSetupCommand', {
+      value: `aws cognito-idp update-user-pool --user-pool-id \${USER_POOL_ID} --lambda-config PostConfirmation=${postConfirmationLambdaArn}`,
+      description: 'Command to manually add PostConfirmation trigger'
+    });
+
+    new cdk.CfnOutput(this, 'PostConfirmationLambdaArn', {
+      value: postConfirmationLambdaArn,
+      description: 'PostConfirmation Lambda ARN for manual setup'
     });
   }
 

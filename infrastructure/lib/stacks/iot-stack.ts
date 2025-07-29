@@ -2,6 +2,7 @@
 import * as iot from 'aws-cdk-lib/aws-iot';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 
@@ -36,6 +37,9 @@ export class IoTStack extends BaseStack {
   }
 
   private createIoTPolicies(): void {
+    // Get the account ID dynamically
+    const accountId = cdk.Stack.of(this).account;
+
     // Device policy for sensors
     this.policies.devicePolicy = new iot.CfnPolicy(this, 'DevicePolicy', {
       policyName: `${this.config.projectName}-device-policy`,
@@ -48,7 +52,7 @@ export class IoTStack extends BaseStack {
               'iot:Connect',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:client/\${cognito-identity.amazonaws.com:sub}`,
+              `arn:aws:iot:${this.config.region}:${accountId}:client/\${cognito-identity.amazonaws.com:sub}`,
             ],
           },
           {
@@ -57,8 +61,8 @@ export class IoTStack extends BaseStack {
               'iot:Publish',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:topic/museum-alert/sensor/\${cognito-identity.amazonaws.com:sub}/*`,
-              `arn:aws:iot:${this.config.region}:*:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/status`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/sensor/\${cognito-identity.amazonaws.com:sub}/*`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/status`,
             ],
           },
           {
@@ -68,8 +72,8 @@ export class IoTStack extends BaseStack {
               'iot:Receive',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:topicfilter/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
-              `arn:aws:iot:${this.config.region}:*:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topicfilter/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
             ],
           },
         ],
@@ -88,7 +92,7 @@ export class IoTStack extends BaseStack {
               'iot:Connect',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:client/\${cognito-identity.amazonaws.com:sub}`,
+              `arn:aws:iot:${this.config.region}:${accountId}:client/\${cognito-identity.amazonaws.com:sub}`,
             ],
           },
           {
@@ -98,8 +102,8 @@ export class IoTStack extends BaseStack {
               'iot:Receive',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:topicfilter/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
-              `arn:aws:iot:${this.config.region}:*:topic/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topicfilter/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
             ],
           },
           {
@@ -108,7 +112,7 @@ export class IoTStack extends BaseStack {
               'iot:Publish',
             ],
             Resource: [
-              `arn:aws:iot:${this.config.region}:*:topic/museum-alert/device/*/commands`,
+              `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
             ],
           },
         ],
@@ -116,7 +120,10 @@ export class IoTStack extends BaseStack {
     });
   }
 
-private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
+  private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
+    // Get the account ID dynamically
+    const accountId = cdk.Stack.of(this).account;
+
     // Create role for provisioning template
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
@@ -133,7 +140,14 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
                 'iot:AttachPolicy',
                 'iot:AddThingToThingGroup',
               ],
-              resources: ['*'],
+              // Use specific account ID instead of wildcard
+              resources: [
+                `arn:aws:iot:${this.config.region}:${accountId}:thing/*`,
+                `arn:aws:iot:${this.config.region}:${accountId}:cert/*`,
+                `arn:aws:iot:${this.config.region}:${accountId}:policy/*`,
+                `arn:aws:iot:${this.config.region}:${accountId}:thinggroup/*`,
+                `arn:aws:iot:${this.config.region}:${accountId}:thingtype/*`,
+              ],
             }),
           ],
         }),
@@ -210,7 +224,7 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
                         Action: 'iot:Publish',
                         Resource: [
                           'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events',
-                          'arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands/ack',
+                          'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands/ack',
                         ],
                       },
                     ],
