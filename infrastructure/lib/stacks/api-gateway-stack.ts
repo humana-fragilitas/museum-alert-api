@@ -22,7 +22,7 @@ export class ApiGatewayStack extends BaseStack {
     this.api = this.createRestApi();
     this.authorizer = this.createAuthorizer(props.userPool);
     this.createApiResources(props.lambdaFunctions);
-    
+    this.createOutputs(); // Add this line
     this.applyStandardTags(this);
   }
 
@@ -164,17 +164,26 @@ private createRestApi(): apigateway.RestApi {
   }
 
   // Output important values for frontend configuration
+// Add this method at the end of your ApiGatewayStack class
   private createOutputs(): void {
+    // API Gateway URL for Angular config
     new cdk.CfnOutput(this, 'ApiGatewayUrl', {
       value: this.api.url,
-      description: 'Museum Alert API Gateway URL',
+      description: 'API Gateway URL for Angular app',
       exportName: `${this.config.projectName}-api-url-${this.config.stage}`,
     });
 
     new cdk.CfnOutput(this, 'ApiGatewayId', {
       value: this.api.restApiId,
-      description: 'Museum Alert API Gateway ID',
+      description: 'API Gateway ID',
       exportName: `${this.config.projectName}-api-id-${this.config.stage}`,
     });
+
+    // Region for Angular config
+    new cdk.CfnOutput(this, 'Region', {
+      value: this.config.region,
+      description: 'AWS Region for Angular app',
+    });
   }
+
 }

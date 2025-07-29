@@ -31,7 +31,14 @@ export class CognitoStack extends BaseStack {
   private createOutputs(): void {
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
+      description: 'Cognito User Pool ID for Angular app',
       exportName: `${this.config.projectName}-user-pool-id-${this.config.stage}`,
+    });
+
+    new cdk.CfnOutput(this, 'UserPoolClientId', {
+      value: this.userPoolClient.userPoolClientId,
+      description: 'Cognito User Pool Client ID for Angular app',
+      exportName: `${this.config.projectName}-user-pool-client-id-${this.config.stage}`,
     });
 
     new cdk.CfnOutput(this, 'UserPoolArn', {
@@ -41,7 +48,13 @@ export class CognitoStack extends BaseStack {
 
     new cdk.CfnOutput(this, 'IdentityPoolId', {
       value: this.identityPool.ref,
+      description: 'Cognito Identity Pool ID for Angular app',
       exportName: `${this.config.projectName}-identity-pool-id-${this.config.stage}`,
+    });
+
+    new cdk.CfnOutput(this, 'Region', {
+      value: this.config.region,
+      description: 'AWS Region for Angular app',
     });
   }
 
@@ -49,10 +62,10 @@ export class CognitoStack extends BaseStack {
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: this.config.cognito.userPoolName,
       
-      // Sign-in configuration
+      // Sign-in configuration - ONLY email, no username
       signInAliases: {
         email: true,
-        username: true,
+        username: false, // Disable username to allow email format
       },
       
       // Self sign-up configuration (based on "open-signup" in your pool name)

@@ -9,6 +9,7 @@ import { LambdaStack } from '../lib/stacks/lambda-stack';
 import { IoTStack } from '../lib/stacks/iot-stack';
 import { TriggersStack } from '../lib/stacks/triggers-stack';
 import { ApiGatewayStack } from '../lib/stacks/api-gateway-stack';
+import { ConfigOutputStack } from '../lib/stacks/config-output-stack'; // Add this import
 
 const app = new cdk.App();
 
@@ -64,11 +65,18 @@ const museumAlertTriggersStack = new TriggersStack(app, `${config.projectName}-t
   config,
 });
 
+// ADD THE CONFIG OUTPUT STACK HERE - AFTER ALL OTHER STACKS
+const museumAlertConfigStack = new ConfigOutputStack(app, `${config.projectName}-config-${config.stage}`, {
+  ...stackProps,
+  config,
+});
+
 // DEPENDENCIES - CORRECTED FOR PROPER DEPLOYMENT ORDER:
 // 1. Core stacks (IAM, Database, Cognito, IoT) - Foundation layer
 // 2. Lambda stack - MUST wait for Cognito exports to be available
 // 3. API Gateway stack - Needs Lambda and Cognito to exist
 // 4. Triggers stack - Needs Lambda exports to be available
+// 5. Config output stack - Needs API Gateway and Cognito exports
 
 // Foundation dependencies
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
@@ -85,3 +93,7 @@ museumAlertApiStack.addDependency(museumAlertCognitoStack);
 // Triggers stack dependencies - imports from Cognito and Lambda
 museumAlertTriggersStack.addDependency(museumAlertCognitoStack);
 museumAlertTriggersStack.addDependency(museumAlertLambdaStack);
+
+// Config output stack dependencies - needs exports from API Gateway and Cognito
+museumAlertConfigStack.addDependency(museumAlertApiStack);
+museumAlertConfigStack.addDependency(museumAlertCognitoStack);
