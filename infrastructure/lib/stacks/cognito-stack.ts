@@ -22,6 +22,9 @@ export class CognitoStack extends BaseStack {
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
     
+    // TEMPORARILY DISABLE Lambda trigger to fix deployment
+    // this.addLambdaTrigger();
+    
     // Export values for other stacks to import
     this.createOutputs();
     
@@ -216,5 +219,38 @@ export class CognitoStack extends BaseStack {
     });
 
     return identityPool;
+  }
+
+  private addLambdaTrigger(): void {
+    // Import the Lambda function ARN from the Lambda stack
+    const postConfirmationLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-post-confirmation-arn-${this.config.stage}`);
+    
+    // Get the Lambda function reference with sameEnvironment=true
+    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(
+      this, 
+      'ImportedPostConfirmationLambda', 
+      {
+        functionArn: postConfirmationLambdaArn,
+        sameEnvironment: true, // This fixes the warning and enables permissions
+      }
+    );
+
+    // AUTOMATICALLY configure the trigger (not manual!)
+    const cfnUserPool = this.userPool.node.defaultChild as cognito.CfnUserPool;
+    cfnUserPool.lambdaConfig = {
+      postConfirmation: postConfirmationLambdaArn,
+    };
+
+    // Grant Cognito permission to invoke the Lambda
+    postConfirmationFunction.addPermission('CognitoTriggerPermission', {
+      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
+      sourceArn: this.userPool.userPoolArn,
+    });
+
+    // Add output to confirm trigger is configured
+    new cdk.CfnOutput(this, 'PostConfirmationTriggerStatus', {
+      value: 'AUTOMATICALLY CONFIGURED',
+      description: '✅ PostConfirmation trigger configured via IaC',
+    });
   }
 }

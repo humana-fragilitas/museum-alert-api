@@ -9,7 +9,8 @@ import { LambdaStack } from '../lib/stacks/lambda-stack';
 import { IoTStack } from '../lib/stacks/iot-stack';
 import { TriggersStack } from '../lib/stacks/triggers-stack';
 import { ApiGatewayStack } from '../lib/stacks/api-gateway-stack';
-import { ConfigOutputStack } from '../lib/stacks/config-output-stack'; // Add this import
+import { CognitoWiringStack } from '../lib/stacks/cognito-wiring-stack'; // Add this import
+import { ConfigOutputStack } from '../lib/stacks/config-output-stack';
 
 const app = new cdk.App();
 
@@ -59,41 +60,45 @@ const museumAlertApiStack = new ApiGatewayStack(app, `${config.projectName}-api-
   userPool: museumAlertCognitoStack.userPool,
 });
 
-// Triggers stack - handles ALL cross-stack wiring using imports/exports
+// Triggers stack - handles IoT topic rules only
 const museumAlertTriggersStack = new TriggersStack(app, `${config.projectName}-triggers-${config.stage}`, {
   ...stackProps,
   config,
 });
 
-// ADD THE CONFIG OUTPUT STACK HERE - AFTER ALL OTHER STACKS
+// NEW: Cognito wiring stack - handles the PostConfirmation trigger
+const museumAlertCognitoWiringStack = new CognitoWiringStack(app, `${config.projectName}-cognito-wiring-${config.stage}`, {
+  ...stackProps,
+  config,
+});
+
+// Config output stack
 const museumAlertConfigStack = new ConfigOutputStack(app, `${config.projectName}-config-${config.stage}`, {
   ...stackProps,
   config,
 });
 
-// DEPENDENCIES - CORRECTED FOR PROPER DEPLOYMENT ORDER:
-// 1. Core stacks (IAM, Database, Cognito, IoT) - Foundation layer
-// 2. Lambda stack - MUST wait for Cognito exports to be available
-// 3. API Gateway stack - Needs Lambda and Cognito to exist
-// 4. Triggers stack - Needs Lambda exports to be available
-// 5. Config output stack - Needs API Gateway and Cognito exports
+// CORRECTED DEPENDENCIES - NO CIRCULAR REFERENCES
 
-// Foundation dependencies
+// Foundation dependencies (parallel - no interdependencies)
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
 museumAlertCognitoStack.addDependency(museumAlertIamStack);
 museumAlertIotStack.addDependency(museumAlertIamStack);
 
-// CRITICAL: Lambda imports Cognito exports - needs explicit dependency
+// Lambda imports Cognito exports - Lambda depends on Cognito
 museumAlertLambdaStack.addDependency(museumAlertCognitoStack);
 
 // API Gateway dependencies - needs both Lambda and Cognito
 museumAlertApiStack.addDependency(museumAlertLambdaStack);
 museumAlertApiStack.addDependency(museumAlertCognitoStack);
 
-// Triggers stack dependencies - imports from Cognito and Lambda
-museumAlertTriggersStack.addDependency(museumAlertCognitoStack);
+// Triggers stack dependencies - imports from Lambda only
 museumAlertTriggersStack.addDependency(museumAlertLambdaStack);
 
-// Config output stack dependencies - needs exports from API Gateway and Cognito
+// NEW: Cognito wiring depends on BOTH Cognito and Lambda being deployed
+museumAlertCognitoWiringStack.addDependency(museumAlertCognitoStack);
+museumAlertCognitoWiringStack.addDependency(museumAlertLambdaStack);
+
+// Config output stack dependencies - needs exports from API Gateway and Cognito  
 museumAlertConfigStack.addDependency(museumAlertApiStack);
 museumAlertConfigStack.addDependency(museumAlertCognitoStack);
