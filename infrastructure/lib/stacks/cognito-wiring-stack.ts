@@ -17,7 +17,8 @@ export class CognitoWiringStack extends BaseStack {
   }
 
   private configureCognitoTrigger(): void {
-    // Import both Cognito User Pool ARN and Lambda ARN
+    // Import User Pool ID directly (simpler and more reliable)
+    const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
     const userPoolArn = cdk.Fn.importValue(`${this.config.projectName}-user-pool-arn-${this.config.stage}`);
     const postConfirmationLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-post-confirmation-arn-${this.config.stage}`);
 
@@ -42,7 +43,8 @@ export class CognitoWiringStack extends BaseStack {
     const configureRule = new cdk.CustomResource(this, 'ConfigureCognitoTrigger', {
       serviceToken: this.createTriggerConfiguratorProvider().serviceToken,
       properties: {
-        UserPoolId: cdk.Fn.select(1, cdk.Fn.split('/', cdk.Fn.select(1, cdk.Fn.split(':', userPoolArn)))),
+        // Use the directly imported User Pool ID
+        UserPoolId: userPoolId,
         PostConfirmationLambdaArn: postConfirmationLambdaArn,
       },
     });
