@@ -78,6 +78,7 @@ const museumAlertConfigStack = new ConfigOutputStack(app, `${config.projectName}
 // Foundation dependencies (parallel - no interdependencies)
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
 museumAlertIotStack.addDependency(museumAlertIamStack);
+museumAlertIotStack.addDependency(museumAlertLambdaStack); // IoT needs Lambda for pre-provisioning hook
 
 // Lambda has no dependencies on other business logic stacks
 museumAlertLambdaStack.addDependency(museumAlertIamStack);
@@ -95,3 +96,4 @@ museumAlertTriggersStack.addDependency(museumAlertLambdaStack);
 // Config output stack dependencies - needs exports from API Gateway and Cognito  
 museumAlertConfigStack.addDependency(museumAlertApiStack);
 museumAlertConfigStack.addDependency(museumAlertCognitoStack);
+

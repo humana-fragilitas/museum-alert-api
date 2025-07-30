@@ -103,8 +103,8 @@ export class LambdaStack extends BaseStack {
     });
   }
 
-  private createCompanyFunctions(): void {
 
+private createCompanyFunctions(): void {
     // getCompany function
     this.functions.getCompany = this.createLambdaFunction(
       'GetCompanyFunction',
@@ -115,19 +115,21 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-    // TO DO: BEGIN experimental policy here
-    const getCompanyPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'dynamodb:GetItem',
-      ],
-      resources: [
-        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
-      ],
-    });
-
-    this.functions.getCompany.addToRolePolicy(getCompanyPolicy);
-    // TO DO: END experimental policy here
+    // FIXED: Correct policy syntax
+    this.functions.getCompany.role?.attachInlinePolicy(
+      new iam.Policy(this, 'getCompanyLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            actions: [
+              'dynamodb:GetItem'
+            ],
+            resources: [
+              `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
+            ]
+          })
+        ]
+      })
+    );
 
     // updateCompany function
     this.functions.updateCompany = this.createLambdaFunction(
@@ -139,23 +141,22 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-        // TO DO: BEGIN experimental policy here
-    const updateCompanyPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'dynamodb:GetItem',
-        'dynamodb:UpdateItem'
-      ],
-      resources: [
-        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
-      ],
-    });
-
-    this.functions.getCompany.addToRolePolicy(updateCompanyPolicy);
-    // TO DO: END experimental policy here
-  
-    // Grant DynamoDB permissions
-    //this.addDynamoDbPermissions([this.functions.getCompany, this.functions.updateCompany]);
+    // FIXED: Correct policy syntax
+    this.functions.updateCompany.role?.attachInlinePolicy(
+      new iam.Policy(this, 'updateCompanyLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            actions: [
+              'dynamodb:GetItem',
+              'dynamodb:UpdateItem'
+            ],
+            resources: [
+              `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
+            ]
+          })
+        ]
+      })
+    );
   }
 
   private createIoTFunctions(): void {
@@ -172,52 +173,49 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-    // TO DO: BEGIN experimental policy here
-    const createPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:CreatePolicy'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:policy/company-iot-policy-*`
-      ],
-    });
-
-    this.functions.attachIoTPolicy.addToRolePolicy(createPolicy);
-    const attachPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:AttachPolicy'
-      ],
-      resources: [
-        `*`
-      ],
-    });
-    this.functions.attachIoTPolicy.addToRolePolicy(attachPolicy);
-
-    const cognitoGetId = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'cognito-identity:GetId'
-      ],
-      resources: [
-        `arn:aws:cognito-identity:${this.config.region}:identitypool/*`
-      ],
-    });
-    this.functions.attachIoTPolicy.addToRolePolicy(cognitoGetId);
-
-    const cognitoAdminUpdateUserAttributes = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'cognito-idp:AdminUpdateUserAttributes'
-      ],
-      resources: [
-        `arn:aws:cognito-idp:${this.config.region}:userpool/*`
-      ],
-    });
-    this.functions.attachIoTPolicy.addToRolePolicy(cognitoAdminUpdateUserAttributes);
-
-    // TO DO: END experimental policy here
+    // FIXED: Correct policy syntax
+    this.functions.attachIoTPolicy.role?.attachInlinePolicy(
+      new iam.Policy(this, 'attachIoTPolicyLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:CreatePolicy'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:policy/company-iot-policy-*`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:AttachPolicy'
+            ],
+            resources: [
+              '*'
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'cognito-identity:GetId'
+            ],
+            resources: [
+              `arn:aws:cognito-identity:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:identitypool/*`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'cognito-idp:AdminUpdateUserAttributes'
+            ],
+            resources: [
+              `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
+            ],
+          })
+        ]
+      })
+    );
 
     // addThingToGroup function (no layer)
     this.functions.addThingToGroup = this.createLambdaFunction(
@@ -228,40 +226,42 @@ export class LambdaStack extends BaseStack {
       false // No layer
     );
 
-    // TO DO: BEGIN experimental policy here
-   const describeThing = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:DescribeThing'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:thing/*`
-      ],
-    });
-    this.functions.addThingToGroup.addToRolePolicy(describeThing);
-   const describeThingGroup = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:DescribeThingGroup',
-        'iot:CreateThingGroup'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:thinggroup/Company-Group-*`
-      ],
-    });
-    this.functions.addThingToGroup.addToRolePolicy(describeThingGroup);
-   const addIoTThingGroup = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:AddThingToThingGroup'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:thing/*`,
-        `arn:aws:iot:${this.config.region}:thinggroup/Company-Group-*`
-      ],
-    });
-    this.functions.addThingToGroup.addToRolePolicy(addIoTThingGroup);
-    // TO DO: END experimental policy here
+    // FIXED: Correct policy syntax
+    this.functions.addThingToGroup.role?.attachInlinePolicy(
+      new iam.Policy(this, 'addThingToGroupLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeThing'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:AddThingToThingGroup'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeThingGroup',
+              'iot:CreateThingGroup'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
+            ],
+          })
+        ]
+      })
+    );
 
     // republishDeviceConnectionStatus function
     this.functions.republishDeviceConnectionStatus = this.createLambdaFunction(
@@ -269,29 +269,32 @@ export class LambdaStack extends BaseStack {
       'republishDeviceConnectionStatus',
       '../lambda/republishDeviceConnectionStatusLambda'
     );
-
-    // TO DO: BEGIN experimental policy here
-   const describeThing2 = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:DescribeThing'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:thing/*`
-      ],
-    });
-    this.functions.republishDeviceConnectionStatus.addToRolePolicy(describeThing2);
-   const publish = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:Publish'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:topic/companies/*/events`
-      ],
-    });
-    this.functions.republishDeviceConnectionStatus.addToRolePolicy(publish);
-    // TO DO: END experimental policy here
+    
+    // FIXED: Correct policy syntax
+    this.functions.republishDeviceConnectionStatus.role?.attachInlinePolicy(
+      new iam.Policy(this, 'republishDeviceConnectionStatusLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeThing'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:Publish'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:topic/companies/*/events`
+            ],
+          })
+        ]
+      })
+    );
 
     // createProvisioningClaim function
     this.functions.createProvisioningClaim = this.createLambdaFunction(
@@ -304,38 +307,22 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-  // TO DO: BEGIN experimental policy here
-   const createProvisioningClaim = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:CreateProvisioningClaim'
-      ],
-      resources: [
-        `arn:aws:iot:${this.config.region}:provisioningtemplate/*`
-      ],
-    });
-    this.functions.createProvisioningClaim.addToRolePolicy(createProvisioningClaim);
-  // TO DO: END experimental policy here
-
-    // Grant IoT permissions
-    // const iotPolicy = new iam.PolicyStatement({
-    //   effect: iam.Effect.ALLOW,
-    //   actions: [
-    //     'iot:AttachPolicy',
-    //     'iot:DetachPolicy',
-    //     'iot:AddThingToThingGroup',
-    //     'iot:RemoveThingFromThingGroup',
-    //     'iot:Publish',
-    //     'iot:CreateProvisioningClaim',
-    //     'iot:DescribeEndpoint',
-    //   ],
-    //   resources: ['*'],
-    // });
-
-    // this.functions.attachIoTPolicy.addToRolePolicy(iotPolicy);
-    // this.functions.addThingToGroup.addToRolePolicy(iotPolicy);
-    // this.functions.republishDeviceConnectionStatus.addToRolePolicy(iotPolicy);
-    // this.functions.createProvisioningClaim.addToRolePolicy(iotPolicy);
+    // FIXED: Correct policy syntax
+    this.functions.createProvisioningClaim.role?.attachInlinePolicy(
+      new iam.Policy(this, 'createProvisioningClaimLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:CreateProvisioningClaim'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:provisioningtemplate/*`
+            ],
+          })
+        ]
+      })
+    );
   }
 
   private createCognitoTriggerFunctions(): void {
@@ -351,6 +338,37 @@ export class LambdaStack extends BaseStack {
       }
     );
 
+    // FIXED: Correct policy syntax
+    this.functions.postConfirmationLambda.role?.attachInlinePolicy(
+      new iam.Policy(this, 'postConfirmationLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'dynamodb:PutItem',
+              'dynamodb:UpdateItem',
+              'dynamodb:DeleteItem',
+              'dynamodb:GetItem'
+            ],
+            resources: [
+              `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'cognito-idp:AdminUpdateUserAttributes',
+              'cognito-idp:CreateGroup',
+              'cognito-idp:AdminAddUserToGroup'
+            ],
+            resources: [
+              `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
+            ],
+          })
+        ]
+      })
+    );
+
     this.functions.deleteUserLambda = this.createLambdaFunction(
       'DeleteUserLambdaFunction',
       'deleteUserLambda',
@@ -358,37 +376,11 @@ export class LambdaStack extends BaseStack {
       {},
       false // No layer
     );
-
-    this.addDynamoDbPermissions([this.functions.postConfirmationLambda]);
-
-    /**
-     * TO DO: BEGIN TEST
-     */
-
-    this.functions.postConfirmationLambda.role?.attachInlinePolicy(
-      new iam.Policy(this, 'PostConfirmationLambdaCognitoPolicy', {
-        statements: [
-          new iam.PolicyStatement({
-            actions: [
-              'cognito-idp:AdminUpdateUserAttributes',
-              'cognito-idp:AdminAddUserToGroup',
-              'cognito-idp:CreateGroup'
-            ],
-            resources: [
-              `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/*`
-            ]
-          })
-        ]
-      })
-    );
-
-    // TO DO: END TEST
-
-    this.addCognitoPermissions([this.functions.deleteUserLambda]);
   }
 
   private createDeviceManagementFunctions(): void {
-    const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
+
+const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
 
     this.functions.getThingsByCompany = this.createLambdaFunction(
       'GetThingsByCompanyFunction',
@@ -397,6 +389,23 @@ export class LambdaStack extends BaseStack {
       {
         USER_POOL_ID: userPoolId,
       }
+    );
+
+    // FIXED: Correct policy syntax
+    this.functions.getThingsByCompany.role?.attachInlinePolicy(
+      new iam.Policy(this, 'getThingsByCompanyLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:ListThingsInThingGroup'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
+            ]
+          })
+        ]
+      })
     );
 
     this.functions.preProvisioningHook = this.createLambdaFunction(
@@ -408,6 +417,25 @@ export class LambdaStack extends BaseStack {
       }
     );
 
+    // FIXED: Correct policy syntax
+    this.functions.preProvisioningHook.role?.attachInlinePolicy(
+      new iam.Policy(this, 'preProvisioningHookLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeThing',
+              'iot:DescribeCertificate' // <-- ADD THIS PERMISSION
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
+              `arn:aws:iot:${this.region}:${this.account}:cert/*`
+            ]
+          })
+        ]
+      })
+    );
+
     this.functions.checkThingExists = this.createLambdaFunction(
       'CheckThingExistsFunction',
       'checkThingExists',
@@ -417,20 +445,22 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-    const iotDevicePolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'iot:ListThings',
-        'iot:DescribeThing',
-        'iot:ListThingsInThingGroup',
-        'iot:ListThingGroupsForThing',
-      ],
-      resources: ['*'],
-    });
-
-    this.functions.getThingsByCompany.addToRolePolicy(iotDevicePolicy);
-    this.functions.preProvisioningHook.addToRolePolicy(iotDevicePolicy);
-    this.functions.checkThingExists.addToRolePolicy(iotDevicePolicy);
+    // FIXED: Correct policy syntax
+    this.functions.checkThingExists.role?.attachInlinePolicy(
+      new iam.Policy(this, 'checkThingExistsLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeThing'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
+            ]
+          })
+        ]
+      })
+    );
   }
 
   private createOutputs(): void {
@@ -463,7 +493,7 @@ export class LambdaStack extends BaseStack {
         'dynamodb:Scan',
       ],
       resources: [
-        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
+        `arn:aws:dynamodb:${this.config.region}:${this.account}:table/companies*`,
       ],
     });
 
@@ -481,7 +511,7 @@ export class LambdaStack extends BaseStack {
         'cognito-idp:ListUsers',
       ],
       resources: [
-        `arn:aws:cognito-idp:${this.config.region}:*:userpool/*`,
+        `arn:aws:cognito-idp:${this.config.region}:${this.account}:userpool/*`,
       ],
     });
 

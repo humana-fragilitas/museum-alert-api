@@ -12,7 +12,7 @@
     "prepare-layer": "cd ../lambda/lambdaLayer/nodejs && npm install --only=production",
     "clean-layer": "rm -rf ../lambda/lambdaLayer/nodejs/node_modules",
     "rebuild-layer": "npm run clean-layer && npm run prepare-layer",
-    "deploy:dev": "npm run prepare-layer && npm run build && AWS_PROFILE=cdk-deploy cdk deploy --all --context stage=dev --require-approval never",
+    "deploy:dev": "npm run prepare-layer && AWS_PROFILE=cdk-deploy cdk deploy --all --context stage=dev --require-approval never",
     "deploy:prod": "npm run prepare-layer && npm run build && AWS_PROFILE=cdk-deploy cdk deploy --all --context stage=prod --require-approval never",
     "destroy:dev": "AWS_PROFILE=cdk-deploy cdk destroy --all --context stage=dev --force",
     "destroy:prod": "AWS_PROFILE=cdk-deploy cdk destroy --all --context stage=prod --force",

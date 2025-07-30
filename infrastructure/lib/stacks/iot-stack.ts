@@ -120,9 +120,12 @@ export class IoTStack extends BaseStack {
     });
   }
 
-  private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
+private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
     // Get the account ID dynamically
     const accountId = cdk.Stack.of(this).account;
+
+    // Import the pre-provisioning hook Lambda ARN
+    const preProvisioningHookArn = cdk.Fn.importValue(`${this.config.projectName}-preprovisioninghook-arn-${this.config.stage}`);
 
     // Create role for provisioning template
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
@@ -137,16 +140,21 @@ export class IoTStack extends BaseStack {
                 'iot:CreateThing',
                 'iot:CreateKeysAndCertificate',
                 'iot:AttachThingPrincipal',
+                'iot:CreatePolicy',
                 'iot:AttachPolicy',
                 'iot:AddThingToThingGroup',
+                'iot:DescribeThingType',
+                'iot:DescribeThing',
+                'iot:UpdateThing',
+                'lambda:InvokeFunction'
               ],
-              // Use specific account ID instead of wildcard
               resources: [
                 `arn:aws:iot:${this.config.region}:${accountId}:thing/*`,
                 `arn:aws:iot:${this.config.region}:${accountId}:cert/*`,
                 `arn:aws:iot:${this.config.region}:${accountId}:policy/*`,
                 `arn:aws:iot:${this.config.region}:${accountId}:thinggroup/*`,
                 `arn:aws:iot:${this.config.region}:${accountId}:thingtype/*`,
+                preProvisioningHookArn
               ],
             }),
           ],
@@ -154,11 +162,31 @@ export class IoTStack extends BaseStack {
       },
     });
 
-    return new iot.CfnProvisioningTemplate(this, 'ProvisioningTemplate', {
+  
+
+    // Get reference to the Lambda function for permissions
+    const preProvisioningHookFunction = lambda.Function.fromFunctionAttributes(
+      this, 
+      'ImportedPreProvisioningHook', 
+      {
+        functionArn: preProvisioningHookArn,
+        sameEnvironment: true,
+      }
+    );
+
+    const template = new iot.CfnProvisioningTemplate(this, 'ProvisioningTemplate', {
       templateName: this.config.iot.provisioningTemplateName,
       description: 'Provisioning template for Museum Alert sensors',
       enabled: true,
       provisioningRoleArn: provisioningRole.roleArn,
+      
+      // Add pre-provisioning hook
+      preProvisioningHook: {
+        targetArn: preProvisioningHookArn,
+        payloadVersion: '2020-04-01',
+      },
+      
+      // EXACT COPY of your production template
       templateBody: JSON.stringify({
         Parameters: {
           ThingName: {
@@ -182,7 +210,7 @@ export class IoTStack extends BaseStack {
               AttributePayload: {
                 Company: { Ref: 'Company' },
               },
-              ThingTypeName: this.config.iot.thingTypeName,
+              ThingTypeName: this.config.iot.thingTypeName, // Keep the config value
             },
             OverrideSettings: {
               AttributePayload: 'REPLACE',
@@ -199,36 +227,10 @@ export class IoTStack extends BaseStack {
           policy: {
             Type: 'AWS::IoT::Policy',
             Properties: {
+              // EXACT COPY of your production policy - NO PolicyName, only PolicyDocument
               PolicyDocument: {
                 'Fn::Sub': [
-                  JSON.stringify({
-                    Version: '2012-10-17',
-                    Statement: [
-                      {
-                        Effect: 'Allow',
-                        Action: 'iot:Connect',
-                        Resource: 'arn:aws:iot:${Region}:${AccountId}:client/${ThingName}',
-                      },
-                      {
-                        Effect: 'Allow',
-                        Action: 'iot:Subscribe',
-                        Resource: 'arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands',
-                      },
-                      {
-                        Effect: 'Allow',
-                        Action: 'iot:Receive',
-                        Resource: 'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands',
-                      },
-                      {
-                        Effect: 'Allow',
-                        Action: 'iot:Publish',
-                        Resource: [
-                          'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events',
-                          'arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands/ack',
-                        ],
-                      },
-                    ],
-                  }),
+                  '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"iot:Connect","Resource":"arn:aws:iot:${Region}:${AccountId}:client/${ThingName}"},{"Effect":"Allow","Action":"iot:Subscribe","Resource":"arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Receive","Resource":"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Publish","Resource":["arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events","arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands/ack"]}]}',
                   {
                     ThingName: { Ref: 'ThingName' },
                     Company: { Ref: 'Company' },
@@ -246,7 +248,15 @@ export class IoTStack extends BaseStack {
           },
         },
       }),
-      // Note: Pre-provisioning hook will be added by a separate stack to avoid circular dependencies
     });
+
+    // Grant IoT permission to invoke the pre-provisioning hook
+    preProvisioningHookFunction.addPermission('IoTProvisioningHookPermission', {
+      sourceAccount: accountId,
+      principal: new iam.ServicePrincipal('iot.amazonaws.com'),
+      sourceArn: `arn:aws:iot:${this.config.region}:${accountId}:provisioningtemplate/${this.config.iot.provisioningTemplateName}`,
+    });
+
+    return template;
   }
 }

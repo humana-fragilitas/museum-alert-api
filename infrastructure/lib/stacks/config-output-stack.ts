@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
+import * as customResources from 'aws-cdk-lib/custom-resources';
 
 export class ConfigOutputStack extends BaseStack {
   constructor(scope: Construct, id: string, props: BaseStackProps) {
@@ -19,28 +20,43 @@ export class ConfigOutputStack extends BaseStack {
     const userPoolClientId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-client-id-${this.config.stage}`);
     const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
 
-    // Use your existing IoT endpoint pattern
-    const iotEndpoint = `avo0w7o1tlck1-ats.iot.${this.config.region}.amazonaws.com`;
+    // DYNAMIC: Get IoT endpoint using custom resource
+    const iotEndpointProvider = new customResources.AwsCustomResource(this, 'IoTEndpointProvider', {
+      onUpdate: {
+        service: 'IoT',
+        action: 'describeEndpoint',
+        parameters: {
+          endpointType: 'iot:Data-ATS'
+        },
+        region: this.config.region,
+        physicalResourceId: customResources.PhysicalResourceId.of('iot-endpoint'),
+      },
+      policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
+        resources: customResources.AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
+    });
+
+    const iotEndpoint = iotEndpointProvider.getResponseField('endpointAddress');
 
     // Create the complete Angular configuration template
     new cdk.CfnOutput(this, 'AngularAppConfiguration', {
-      value: `export const APP_CONFIG = {
+      value: cdk.Fn.sub(`export const APP_CONFIG = {
   production: ${this.config.stage === 'prod'},
   environment: '${this.config.stage.toUpperCase()}',
   aws: {
-    apiGateway: '${apiUrl}',
+    apiGateway: '\${ApiUrl}',
     region: '${this.config.region}',
     algorithm: 'AWS4-HMAC-SHA256',
     IoTCore: {
-      endpoint: '${iotEndpoint}',
+      endpoint: '\${IoTEndpoint}',
       service: 'iotdevicegateway'
     },
     amplify: {
       Auth: {
         Cognito: {
-          userPoolId: '${userPoolId}',
-          userPoolClientId: '${userPoolClientId}',
-          identityPoolId: '${identityPoolId}',
+          userPoolId: '\${UserPoolId}',
+          userPoolClientId: '\${UserPoolClientId}',
+          identityPoolId: '\${IdentityPoolId}',
           mandatorySignIn: true,
           authenticationFlowType: 'USER_SRP_AUTH'
         }
@@ -51,7 +67,13 @@ export class ConfigOutputStack extends BaseStack {
     MQTT_RESPONSE_TIMEOUT: 10000,
     USB_RESPONSE_TIMEOUT: 10000,
   }
-};`,
+};`, {
+        ApiUrl: apiUrl,
+        UserPoolId: userPoolId,
+        UserPoolClientId: userPoolClientId,
+        IdentityPoolId: identityPoolId,
+        IoTEndpoint: iotEndpoint,
+      }),
       description: '🚀 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
     });
 
@@ -68,7 +90,7 @@ export class ConfigOutputStack extends BaseStack {
 
     new cdk.CfnOutput(this, 'AppConfigIoTEndpoint', {
       value: iotEndpoint,
-      description: '📋 IoT Core Endpoint',
+      description: '📋 IoT Core Endpoint (Dynamic)',
     });
 
     new cdk.CfnOutput(this, 'AppConfigUserPoolId', {

@@ -1,6 +1,6 @@
 import {
   errorApiResponse,
-  getDecodedUserToken,
+  getUserInfo,
   successApiResponse,
   thingAlreadyExists,
   validateEnvironmentVariables
@@ -44,9 +44,7 @@ export const handler = async (event) => {
 
   }
 
-  const decodedUserToken = await getDecodedUserToken(
-    region, userPoolId, authToken
-  );
+  const decodedUserToken = getUserInfo(event);
 
   if (!decodedUserToken) {
 

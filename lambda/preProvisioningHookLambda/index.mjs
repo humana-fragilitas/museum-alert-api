@@ -1,3 +1,11 @@
+/**
+ * jose library tries to use the Web Crypto API, which expects globalThis.crypto to be defined;
+ * but in AWS Lambda’s Node.js runtime, it's not available by default in the global scope
+ */
+
+import * as nodeCrypto from 'crypto';
+globalThis.crypto = nodeCrypto;
+
 import { 
   getDecodedUserToken,
   thingAlreadyExists,

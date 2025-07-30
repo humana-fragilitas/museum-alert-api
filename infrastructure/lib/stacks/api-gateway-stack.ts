@@ -19,6 +19,7 @@ export class ApiGatewayStack extends BaseStack {
   constructor(scope: Construct, id: string, props: ApiGatewayStackProps) {
     super(scope, id, props);
 
+
     this.api = this.createRestApi();
     this.authorizer = this.createAuthorizer(props.userPool);
     this.createApiResources(props.lambdaFunctions);
@@ -57,8 +58,14 @@ private createRestApi(): apigateway.RestApi {
         metricsEnabled: true, // Keep metrics, disable logs
       },
       
-      // Binary media types
-      binaryMediaTypes: ['*/*'],
+      // CRITICAL: Remove binary media types to prevent base64 encoding
+      // This was causing the base64 encoding issue
+      // binaryMediaTypes: ['*/*'], // REMOVE THIS LINE
+      
+      // IMPORTANT: Ensure endpoint configuration is REGIONAL (default)
+      endpointConfiguration: {
+        types: [apigateway.EndpointType.REGIONAL]
+      },
     });
   }
 
@@ -70,13 +77,15 @@ private createRestApi(): apigateway.RestApi {
     });
   }
 
-  private createApiResources(lambdaFunctions: { [key: string]: lambda.Function }): void {
-    // Company endpoints
+private createApiResources(lambdaFunctions: { [key: string]: lambda.Function }): void {
+    // Company endpoints - EXACT match to production
     const companyResource = this.api.root.addResource('company');
     
     if (lambdaFunctions.getCompany) {
       companyResource.addMethod('GET', 
-        new apigateway.LambdaIntegration(lambdaFunctions.getCompany),
+        new apigateway.LambdaIntegration(lambdaFunctions.getCompany, {
+          proxy: true,
+        }),
         {
           authorizer: this.authorizer,
           authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -86,45 +95,50 @@ private createRestApi(): apigateway.RestApi {
 
     if (lambdaFunctions.updateCompany) {
       companyResource.addMethod('PUT', 
-        new apigateway.LambdaIntegration(lambdaFunctions.updateCompany),
+        new apigateway.LambdaIntegration(lambdaFunctions.updateCompany, {
+          proxy: true,
+          contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
+        }),
         {
           authorizer: this.authorizer,
           authorizationType: apigateway.AuthorizationType.COGNITO,
+          requestModels: {
+            'application/json': apigateway.Model.EMPTY_MODEL,
+          },
         }
       );
     }
 
-    // Device/Things endpoints
-    const devicesResource = this.api.root.addResource('devices');
+    // Device Management endpoints - EXACT match to production structure
+    const deviceManagementResource = this.api.root.addResource('device-management');
     
-    if (lambdaFunctions.getThingsByCompany) {
-      devicesResource.addMethod('GET', 
-        new apigateway.LambdaIntegration(lambdaFunctions.getThingsByCompany),
-        {
-          authorizer: this.authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-        }
-      );
-    }
-
-    if (lambdaFunctions.checkThingExists) {
-      const checkDeviceResource = devicesResource.addResource('check');
-      checkDeviceResource.addMethod('POST', 
-        new apigateway.LambdaIntegration(lambdaFunctions.checkThingExists),
-        {
-          authorizer: this.authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-        }
-      );
-    }
-
-    // IoT provisioning endpoints
-    const provisioningResource = this.api.root.addResource('provisioning');
+    // IMPORTANT: Provisioning Claims is NESTED under device-management
+    const provisioningClaimsResource = deviceManagementResource.addResource('provisioning-claims');
     
     if (lambdaFunctions.createProvisioningClaim) {
-      const claimResource = provisioningResource.addResource('claim');
-      claimResource.addMethod('POST', 
-        new apigateway.LambdaIntegration(lambdaFunctions.createProvisioningClaim),
+      provisioningClaimsResource.addMethod('POST', 
+        new apigateway.LambdaIntegration(lambdaFunctions.createProvisioningClaim, {
+          proxy: true,
+          contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
+        }),
+        {
+          authorizer: this.authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+          requestModels: {
+            'application/json': apigateway.Model.EMPTY_MODEL,
+          },
+        }
+      );
+    }
+
+    // Things endpoints - EXACT match to production
+    const thingsResource = this.api.root.addResource('things');
+    
+    if (lambdaFunctions.getThingsByCompany) {
+      thingsResource.addMethod('GET', 
+        new apigateway.LambdaIntegration(lambdaFunctions.getThingsByCompany, {
+          proxy: true,
+        }),
         {
           authorizer: this.authorizer,
           authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -132,35 +146,54 @@ private createRestApi(): apigateway.RestApi {
       );
     }
 
-    // User management endpoints
+    // Things with thingName parameter - EXACT match to production
+    const thingNameResource = thingsResource.addResource('{thingName}');
+    
+    if (lambdaFunctions.checkThingExists) {
+      thingNameResource.addMethod('GET', 
+        new apigateway.LambdaIntegration(lambdaFunctions.checkThingExists, {
+          proxy: true,
+        }),
+        {
+          authorizer: this.authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+        }
+      );
+    }
+
+    // User Policy endpoint - EXACT match to production
+    const userPolicyResource = this.api.root.addResource('user-policy');
+    
+    if (lambdaFunctions.attachIoTPolicy) {
+      userPolicyResource.addMethod('POST', 
+        new apigateway.LambdaIntegration(lambdaFunctions.attachIoTPolicy, {
+          proxy: true,
+          contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
+        }),
+        {
+          authorizer: this.authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+          requestModels: {
+            'application/json': apigateway.Model.EMPTY_MODEL,
+          },
+        }
+      );
+    }
+
+    // User management endpoints (if you have deleteUserLambda)
     const userResource = this.api.root.addResource('user');
     
     if (lambdaFunctions.deleteUserLambda) {
       userResource.addMethod('DELETE', 
-        new apigateway.LambdaIntegration(lambdaFunctions.deleteUserLambda),
+        new apigateway.LambdaIntegration(lambdaFunctions.deleteUserLambda, {
+          proxy: true,
+        }),
         {
           authorizer: this.authorizer,
           authorizationType: apigateway.AuthorizationType.COGNITO,
         }
       );
     }
-
-    // IoT policy attachment (might be called from frontend)
-    const iotResource = this.api.root.addResource('iot');
-    
-    if (lambdaFunctions.attachIoTPolicy) {
-      const policyResource = iotResource.addResource('attach-policy');
-      policyResource.addMethod('POST', 
-        new apigateway.LambdaIntegration(lambdaFunctions.attachIoTPolicy),
-        {
-          authorizer: this.authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-        }
-      );
-    }
-
-    // Note: Removed grantApiGatewayInvokePermissions call to avoid circular dependency
-    // Lambda permissions are automatically granted by LambdaIntegration
   }
 
   // Output important values for frontend configuration

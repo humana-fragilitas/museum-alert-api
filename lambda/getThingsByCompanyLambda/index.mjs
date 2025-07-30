@@ -2,7 +2,7 @@ import { IoTClient, ListThingsInThingGroupCommand } from '@aws-sdk/client-iot';
 
 import {
   validateEnvironmentVariables, 
-  getDecodedUserToken,
+  getUserInfo,
   errorApiResponse,
   successApiResponse
 } from '/opt/nodejs/shared/index.js'; 
@@ -37,11 +37,7 @@ export const handler = async (event) => {
 
   }
 
-  const decodedUserToken = await getDecodedUserToken(
-    region,
-    userPoolId,
-    authToken
-  );
+  const decodedUserToken = getUserInfo(event);
 
   if (!decodedUserToken) {
 
