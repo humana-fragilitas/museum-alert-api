@@ -22,8 +22,8 @@ export class CognitoStack extends BaseStack {
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
     
-    // TEMPORARILY DISABLE Lambda trigger to fix deployment
-    // this.addLambdaTrigger();
+    // ENABLE Lambda trigger configuration
+    this.addLambdaTrigger();
     
     // Export values for other stacks to import
     this.createOutputs();
@@ -240,6 +240,25 @@ export class CognitoStack extends BaseStack {
     cfnUserPool.lambdaConfig = {
       postConfirmation: postConfirmationLambdaArn,
     };
+
+    // TO DO: BEGIN refactor after testing
+    // const cognitoPolicy = new iam.PolicyStatement({
+    //       effect: iam.Effect.ALLOW,
+    //       actions: [
+    //         'cognito-idp:AdminDeleteUser',
+    //         'cognito-idp:AdminGetUser',
+    //         'cognito-idp:ListUsers',
+    //         'cognito-idp:AdminUpdateUserAttributes',
+    //         'cognito-idp:AdminAddUserToGroup',
+    //         'cognito-idp:CreateGroup'
+    //       ],
+    //       resources: [
+    //         `arn:aws:cognito-idp:${this.config.region}:*:userpool/*`,
+    //       ],
+    //     });
+    
+    // postConfirmationFunction.addToRolePolicy(cognitoPolicy);
+    // TO DO: END refactor after testing
 
     // Grant Cognito permission to invoke the Lambda
     postConfirmationFunction.addPermission('CognitoTriggerPermission', {

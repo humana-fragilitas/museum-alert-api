@@ -104,6 +104,7 @@ export class LambdaStack extends BaseStack {
   }
 
   private createCompanyFunctions(): void {
+    
     // getCompany function
     this.functions.getCompany = this.createLambdaFunction(
       'GetCompanyFunction',
@@ -212,6 +213,30 @@ export class LambdaStack extends BaseStack {
     );
 
     this.addDynamoDbPermissions([this.functions.postConfirmationLambda]);
+
+    /**
+     * TO DO: BEGIN TEST
+     */
+
+    this.functions.postConfirmationLambda.role?.attachInlinePolicy(
+      new iam.Policy(this, 'PostConfirmationLambdaCognitoPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            actions: [
+              'cognito-idp:AdminUpdateUserAttributes',
+              'cognito-idp:AdminAddUserToGroup',
+              'cognito-idp:CreateGroup'
+            ],
+            resources: [
+              `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/*`
+            ]
+          })
+        ]
+      })
+    );
+
+    // TO DO: END TEST
+
     this.addCognitoPermissions([this.functions.deleteUserLambda]);
   }
 
