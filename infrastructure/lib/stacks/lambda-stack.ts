@@ -104,7 +104,7 @@ export class LambdaStack extends BaseStack {
   }
 
   private createCompanyFunctions(): void {
-    
+
     // getCompany function
     this.functions.getCompany = this.createLambdaFunction(
       'GetCompanyFunction',
@@ -114,6 +114,20 @@ export class LambdaStack extends BaseStack {
         COMPANIES_TABLE: 'companies',
       }
     );
+
+    // TO DO: BEGIN experimental policy here
+    const getCompanyPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:GetItem',
+      ],
+      resources: [
+        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
+      ],
+    });
+
+    this.functions.getCompany.addToRolePolicy(getCompanyPolicy);
+    // TO DO: END experimental policy here
 
     // updateCompany function
     this.functions.updateCompany = this.createLambdaFunction(
@@ -125,8 +139,23 @@ export class LambdaStack extends BaseStack {
       }
     );
 
+        // TO DO: BEGIN experimental policy here
+    const updateCompanyPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:GetItem',
+        'dynamodb:UpdateItem'
+      ],
+      resources: [
+        `arn:aws:dynamodb:${this.config.region}:*:table/companies*`,
+      ],
+    });
+
+    this.functions.getCompany.addToRolePolicy(updateCompanyPolicy);
+    // TO DO: END experimental policy here
+  
     // Grant DynamoDB permissions
-    this.addDynamoDbPermissions([this.functions.getCompany, this.functions.updateCompany]);
+    //this.addDynamoDbPermissions([this.functions.getCompany, this.functions.updateCompany]);
   }
 
   private createIoTFunctions(): void {
@@ -143,6 +172,53 @@ export class LambdaStack extends BaseStack {
       }
     );
 
+    // TO DO: BEGIN experimental policy here
+    const createPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:CreatePolicy'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:policy/company-iot-policy-*`
+      ],
+    });
+
+    this.functions.attachIoTPolicy.addToRolePolicy(createPolicy);
+    const attachPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:AttachPolicy'
+      ],
+      resources: [
+        `*`
+      ],
+    });
+    this.functions.attachIoTPolicy.addToRolePolicy(attachPolicy);
+
+    const cognitoGetId = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'cognito-identity:GetId'
+      ],
+      resources: [
+        `arn:aws:cognito-identity:${this.config.region}:identitypool/*`
+      ],
+    });
+    this.functions.attachIoTPolicy.addToRolePolicy(cognitoGetId);
+
+    const cognitoAdminUpdateUserAttributes = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'cognito-idp:AdminUpdateUserAttributes'
+      ],
+      resources: [
+        `arn:aws:cognito-idp:${this.config.region}:userpool/*`
+      ],
+    });
+    this.functions.attachIoTPolicy.addToRolePolicy(cognitoAdminUpdateUserAttributes);
+
+    // TO DO: END experimental policy here
+
     // addThingToGroup function (no layer)
     this.functions.addThingToGroup = this.createLambdaFunction(
       'AddThingToGroupFunction',
@@ -152,12 +228,70 @@ export class LambdaStack extends BaseStack {
       false // No layer
     );
 
+    // TO DO: BEGIN experimental policy here
+   const describeThing = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:DescribeThing'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:thing/*`
+      ],
+    });
+    this.functions.addThingToGroup.addToRolePolicy(describeThing);
+   const describeThingGroup = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:DescribeThingGroup',
+        'iot:CreateThingGroup'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:thinggroup/Company-Group-*`
+      ],
+    });
+    this.functions.addThingToGroup.addToRolePolicy(describeThingGroup);
+   const addIoTThingGroup = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:AddThingToThingGroup'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:thing/*`,
+        `arn:aws:iot:${this.config.region}:thinggroup/Company-Group-*`
+      ],
+    });
+    this.functions.addThingToGroup.addToRolePolicy(addIoTThingGroup);
+    // TO DO: END experimental policy here
+
     // republishDeviceConnectionStatus function
     this.functions.republishDeviceConnectionStatus = this.createLambdaFunction(
       'RepublishDeviceConnectionStatusFunction',
       'republishDeviceConnectionStatus',
       '../lambda/republishDeviceConnectionStatusLambda'
     );
+
+    // TO DO: BEGIN experimental policy here
+   const describeThing2 = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:DescribeThing'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:thing/*`
+      ],
+    });
+    this.functions.republishDeviceConnectionStatus.addToRolePolicy(describeThing2);
+   const publish = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'iot:Publish'
+      ],
+      resources: [
+        `arn:aws:iot:${this.config.region}:topic/companies/*/events`
+      ],
+    });
+    this.functions.republishDeviceConnectionStatus.addToRolePolicy(publish);
+    // TO DO: END experimental policy here
 
     // createProvisioningClaim function
     this.functions.createProvisioningClaim = this.createLambdaFunction(
@@ -170,25 +304,38 @@ export class LambdaStack extends BaseStack {
       }
     );
 
-    // Grant IoT permissions
-    const iotPolicy = new iam.PolicyStatement({
+  // TO DO: BEGIN experimental policy here
+   const createProvisioningClaim = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
-        'iot:AttachPolicy',
-        'iot:DetachPolicy',
-        'iot:AddThingToThingGroup',
-        'iot:RemoveThingFromThingGroup',
-        'iot:Publish',
-        'iot:CreateProvisioningClaim',
-        'iot:DescribeEndpoint',
+        'iot:CreateProvisioningClaim'
       ],
-      resources: ['*'],
+      resources: [
+        `arn:aws:iot:${this.config.region}:provisioningtemplate/*`
+      ],
     });
+    this.functions.createProvisioningClaim.addToRolePolicy(createProvisioningClaim);
+  // TO DO: END experimental policy here
 
-    this.functions.attachIoTPolicy.addToRolePolicy(iotPolicy);
-    this.functions.addThingToGroup.addToRolePolicy(iotPolicy);
-    this.functions.republishDeviceConnectionStatus.addToRolePolicy(iotPolicy);
-    this.functions.createProvisioningClaim.addToRolePolicy(iotPolicy);
+    // Grant IoT permissions
+    // const iotPolicy = new iam.PolicyStatement({
+    //   effect: iam.Effect.ALLOW,
+    //   actions: [
+    //     'iot:AttachPolicy',
+    //     'iot:DetachPolicy',
+    //     'iot:AddThingToThingGroup',
+    //     'iot:RemoveThingFromThingGroup',
+    //     'iot:Publish',
+    //     'iot:CreateProvisioningClaim',
+    //     'iot:DescribeEndpoint',
+    //   ],
+    //   resources: ['*'],
+    // });
+
+    // this.functions.attachIoTPolicy.addToRolePolicy(iotPolicy);
+    // this.functions.addThingToGroup.addToRolePolicy(iotPolicy);
+    // this.functions.republishDeviceConnectionStatus.addToRolePolicy(iotPolicy);
+    // this.functions.createProvisioningClaim.addToRolePolicy(iotPolicy);
   }
 
   private createCognitoTriggerFunctions(): void {
