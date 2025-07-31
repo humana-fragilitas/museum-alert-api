@@ -38,6 +38,37 @@ export class ConfigOutputStack extends BaseStack {
 
     const iotEndpoint = iotEndpointProvider.getResponseField('endpointAddress');
 
+    // Individual values for reference
+    new cdk.CfnOutput(this, 'AppConfigApiUrl', {
+      value: apiUrl,
+      description: '📋 API Gateway URL',
+    });
+
+    new cdk.CfnOutput(this, 'AppConfigRegion', {
+      value: this.config.region,
+      description: '📋 AWS Region',
+    });
+
+    new cdk.CfnOutput(this, 'AppConfigIoTEndpoint', {
+      value: iotEndpoint,
+      description: '📋 IoT Core Endpoint (Dynamic)',
+    });
+
+    new cdk.CfnOutput(this, 'AppConfigUserPoolId', {
+      value: userPoolId,
+      description: '📋 Cognito User Pool ID',
+    });
+
+    new cdk.CfnOutput(this, 'AppConfigUserPoolClientId', {
+      value: userPoolClientId,
+      description: '📋 Cognito User Pool Client ID',
+    });
+
+    new cdk.CfnOutput(this, 'AppConfigIdentityPoolId', {
+      value: identityPoolId,
+      description: '📋 Cognito Identity Pool ID',
+    });
+
     // Angular configuration template
     new cdk.CfnOutput(this, 'AngularAppConfiguration', {
       value: cdk.Fn.sub(`
@@ -80,7 +111,7 @@ export class ConfigOutputStack extends BaseStack {
       description: '🚀 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
     });
 
-    // Arduino sketch configuration template - CORRECT for CDK tokens
+    // Arduino sketch configuration template
     new cdk.CfnOutput(this, 'ArduinoSketchConfiguration', {
       value: cdk.Fn.sub(
         `# Replace the corresponding lines in config.h

@@ -13,7 +13,7 @@ import {
   UpdateItemCommand
 } from '@aws-sdk/client-dynamodb';
 
-import { randomUUID } from 'crypto';
+import crypto from 'node:crypto';
 
 import {
   validateEnvironmentVariables
@@ -52,7 +52,7 @@ export const handler = async (event) => {
   const username = event.userName;
   const userAttributes = event.request.userAttributes;
   const userEmail = userAttributes.email;
-  const companyId = randomUUID();
+  const companyId = crypto.randomUUID();
 
   let createdResources = {
     dynamoCompany: false,

@@ -39,7 +39,7 @@ export class LambdaStack extends BaseStack {
       code: lambda.Code.fromAsset('./lambda/lambdaLayer', {
         // Add bundling options to avoid infinite loops
         bundling: {
-          image: lambda.Runtime.NODEJS_18_X.bundlingImage,
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [
             'bash', '-c', [
               'cp -r /asset-input/* /asset-output/',
@@ -58,7 +58,7 @@ export class LambdaStack extends BaseStack {
           'libraries', // Exclude the Arduino libraries that are causing the long path
         ],
       }),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
+      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
       description: 'Shared utilities for Museum Alert Lambda functions',
       removalPolicy: this.config.stage === 'prod' 
         ? cdk.RemovalPolicy.RETAIN 
@@ -76,7 +76,7 @@ export class LambdaStack extends BaseStack {
   ): lambda.Function {
     return new lambda.Function(this, id, {
       functionName,
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(assetPath, {
         // Safe bundling options
@@ -85,15 +85,13 @@ export class LambdaStack extends BaseStack {
           '.git',
           '*.log',
           '.DS_Store',
-          'libraries', // Arduino libraries causing infinite loops
+          'libraries',
           '*.zip',
           'test',
           'tests',
           '__pycache__',
           '.env',
-          // NOTE: Individual Lambda functions shouldn't have node_modules
-          // They should use the shared layer instead
-          'node_modules',
+          'node_modules'
         ],
       }),
       layers: useLayer ? [this.sharedLayer] : undefined,
