@@ -138,3 +138,4 @@ dist
 # General
 *.csv
 notes.md
+infrastructure/check_production_role.sh

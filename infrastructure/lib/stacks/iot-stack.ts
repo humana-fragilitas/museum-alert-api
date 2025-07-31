@@ -128,41 +128,39 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
     const preProvisioningHookArn = cdk.Fn.importValue(`${this.config.projectName}-preprovisioninghook-arn-${this.config.stage}`);
 
     // Create role for provisioning template
+// Create role for provisioning template with enhanced trust policy
+// Create role for provisioning template - SIMPLE and correct
+// Create role with EXACT production configuration
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
       assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
+      
+      // Add the EXACT managed policies from production
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTThingsRegistration'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
+      ],
+      
+      // Add the EXACT inline policy from production (only 4 actions)
       inlinePolicies: {
-        ProvisioningPolicy: new iam.PolicyDocument({
+        'provisioning-policy': new iam.PolicyDocument({
           statements: [
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
               actions: [
                 'iot:CreateThing',
-                'iot:CreateKeysAndCertificate',
+                'iot:CreateKeysAndCertificate', 
                 'iot:AttachThingPrincipal',
-                'iot:CreatePolicy',
                 'iot:AttachPolicy',
-                'iot:AddThingToThingGroup',
-                'iot:DescribeThingType',
-                'iot:DescribeThing',
-                'iot:UpdateThing',
-                'lambda:InvokeFunction'
               ],
-              resources: [
-                `arn:aws:iot:${this.config.region}:${accountId}:thing/*`,
-                `arn:aws:iot:${this.config.region}:${accountId}:cert/*`,
-                `arn:aws:iot:${this.config.region}:${accountId}:policy/*`,
-                `arn:aws:iot:${this.config.region}:${accountId}:thinggroup/*`,
-                `arn:aws:iot:${this.config.region}:${accountId}:thingtype/*`,
-                preProvisioningHookArn
-              ],
+              resources: ['*'], // Wildcard like production
             }),
           ],
         }),
       },
     });
 
-  
 
     // Get reference to the Lambda function for permissions
     const preProvisioningHookFunction = lambda.Function.fromFunctionAttributes(
