@@ -70,6 +70,62 @@ export class TriggersStack extends BaseStack {
       },
     });
 
+const ruleExecutionRole = new iam.Role(this, 'RuleExecutionRole', {
+  roleName: this.createResourceName('role', 'rule-execution'),
+  assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
+
+  // EXACT managed policies for IoT Rule Actions and Logging
+  managedPolicies: [
+    iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
+    iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
+  ],
+
+  // Inline policy with necessary permissions
+  inlinePolicies: {
+    'iot-rule-action-policy': new iam.PolicyDocument({
+      statements: [
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'iot:Publish',
+            'logs:CreateLogStream',
+            'logs:PutLogEvents',
+            'logs:DescribeLogStreams',
+          ],
+          resources: ['*'], // Wildcard as per production standard
+        }),
+      ],
+    }),
+  },
+});
+
+
+const forwardToCompanyEventsRule = new iot.CfnTopicRule(this, 'ForwardToCompanyEventsRule', {
+  ruleName: `${this.config.projectName.replace('-', '')}_forward_to_company_events_${this.config.stage}`,
+  topicRulePayload: {
+    sql: "SELECT type, cid, topic(4) AS sn, timestamp() AS timestamp, data FROM 'companies/+/devices/+/events'",
+    description: 'Forward device events to company-specific topics and CloudWatch Logs',
+    actions: [
+      {
+        republish: {
+          roleArn: ruleExecutionRole.roleArn,
+          topic: 'companies/${topic(2)}/events'
+        }
+      },
+      {
+        cloudwatchLogs: {
+          roleArn: ruleExecutionRole.roleArn,
+          logGroupName: `/aws/iot/companyEvents`
+        }
+      }
+    ],
+    ruleDisabled: false
+  }
+});
+
+
+    
+
     // Grant permissions for IoT to invoke Lambda functions
     republishFunction.addPermission('IoTTopicRulePermission', {
       principal: new iam.ServicePrincipal('iot.amazonaws.com'),

@@ -286,10 +286,19 @@ private createCompanyFunctions(): void {
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: [
-              'iot:Publish'
+              'iot:Publish',
             ],
             resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:topic/companies/*/events`
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:topic/companies/*/events`,
+            ],
+          }),
+                    new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:DescribeEndpoint'
+            ],
+            resources: [
+              '*'
             ],
           })
         ]
