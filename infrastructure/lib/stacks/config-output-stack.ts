@@ -38,74 +38,61 @@ export class ConfigOutputStack extends BaseStack {
 
     const iotEndpoint = iotEndpointProvider.getResponseField('endpointAddress');
 
-    // Create the complete Angular configuration template
+    // Angular configuration template
     new cdk.CfnOutput(this, 'AngularAppConfiguration', {
-      value: cdk.Fn.sub(`export const APP_CONFIG = {
-  production: ${this.config.stage === 'prod'},
-  environment: '${this.config.stage.toUpperCase()}',
-  aws: {
-    apiGateway: '\${ApiUrl}',
-    region: '${this.config.region}',
-    algorithm: 'AWS4-HMAC-SHA256',
-    IoTCore: {
-      endpoint: '\${IoTEndpoint}',
-      service: 'iotdevicegateway'
-    },
-    amplify: {
-      Auth: {
-        Cognito: {
-          userPoolId: '\${UserPoolId}',
-          userPoolClientId: '\${UserPoolClientId}',
-          identityPoolId: '\${IdentityPoolId}',
-          mandatorySignIn: true,
-          authenticationFlowType: 'USER_SRP_AUTH'
-        }
-      }
-    }
-  },
-  settings: {
-    MQTT_RESPONSE_TIMEOUT: 10000,
-    USB_RESPONSE_TIMEOUT: 10000,
-  }
-};`, {
-        ApiUrl: apiUrl,
-        UserPoolId: userPoolId,
-        UserPoolClientId: userPoolClientId,
-        IdentityPoolId: identityPoolId,
-        IoTEndpoint: iotEndpoint,
+      value: cdk.Fn.sub(`
+        // Copy and paste in src/app/environments/environment.*.ts
+        export const APP_CONFIG = {
+          production: ${this.config.stage === 'prod'},
+          environment: '${this.config.stage.toUpperCase()}',
+          aws: {
+            apiGateway: '\${apiUrl}',
+            region: '${this.config.region}',
+            algorithm: 'AWS4-HMAC-SHA256',
+            IoTCore: {
+              endpoint: '\${iotEndpoint}',
+              service: 'iotdevicegateway'
+            },
+            amplify: {
+              Auth: {
+                Cognito: {
+                  userPoolId: '\${userPoolId}',
+                  userPoolClientId: '\${userPoolClientId}',
+                  identityPoolId: '\${identityPoolId}',
+                  mandatorySignIn: true,
+                  authenticationFlowType: 'USER_SRP_AUTH'
+                }
+              }
+            }
+          },
+          settings: {
+            MQTT_RESPONSE_TIMEOUT: 10000,
+            USB_RESPONSE_TIMEOUT: 10000,
+          }
+        };`,
+      { 
+        apiUrl: apiUrl,
+        userPoolId: userPoolId,
+        userPoolClientId: userPoolClientId,
+        identityPoolId: identityPoolId,
+        iotEndpoint: iotEndpoint
       }),
       description: '🚀 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
     });
 
-    // Individual values for reference
-    new cdk.CfnOutput(this, 'AppConfigApiUrl', {
-      value: apiUrl,
-      description: '📋 API Gateway URL',
-    });
+    // Arduino sketch configuration template - CORRECT for CDK tokens
+    new cdk.CfnOutput(this, 'ArduinoSketchConfiguration', {
+      value: cdk.Fn.sub(
+        `# Replace the corresponding lines in config.h
+          namespace AWS {
+            static constexpr const char* IOT_CORE_ENDPOINT = "\${iotEndpoint}";
+          }`,
+          {
+            iotEndpoint
+          }
+        ),
+        description: '🔧 COPY THIS: Arduino Sketch Configuration (config.h)',
+      });
 
-    new cdk.CfnOutput(this, 'AppConfigRegion', {
-      value: this.config.region,
-      description: '📋 AWS Region',
-    });
-
-    new cdk.CfnOutput(this, 'AppConfigIoTEndpoint', {
-      value: iotEndpoint,
-      description: '📋 IoT Core Endpoint (Dynamic)',
-    });
-
-    new cdk.CfnOutput(this, 'AppConfigUserPoolId', {
-      value: userPoolId,
-      description: '📋 Cognito User Pool ID',
-    });
-
-    new cdk.CfnOutput(this, 'AppConfigUserPoolClientId', {
-      value: userPoolClientId,
-      description: '📋 Cognito User Pool Client ID',
-    });
-
-    new cdk.CfnOutput(this, 'AppConfigIdentityPoolId', {
-      value: identityPoolId,
-      description: '📋 Cognito Identity Pool ID',
-    });
   }
 }

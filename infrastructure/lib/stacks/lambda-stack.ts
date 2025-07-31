@@ -36,7 +36,7 @@ export class LambdaStack extends BaseStack {
   private createSharedLayer(): lambda.LayerVersion {
     return new lambda.LayerVersion(this, 'SharedLayer', {
       layerVersionName: `${this.config.projectName}-shared-layer-${this.config.stage}`,
-      code: lambda.Code.fromAsset('../lambda/lambdaLayer', {
+      code: lambda.Code.fromAsset('./lambda/lambdaLayer', {
         // Add bundling options to avoid infinite loops
         bundling: {
           image: lambda.Runtime.NODEJS_18_X.bundlingImage,
@@ -109,7 +109,7 @@ private createCompanyFunctions(): void {
     this.functions.getCompany = this.createLambdaFunction(
       'GetCompanyFunction',
       'getCompany',
-      '../lambda/getCompanyLambda',
+      './lambda/getCompanyLambda',
       {
         COMPANIES_TABLE: 'companies',
       }
@@ -135,7 +135,7 @@ private createCompanyFunctions(): void {
     this.functions.updateCompany = this.createLambdaFunction(
       'UpdateCompanyFunction',
       'updateCompany',
-      '../lambda/updateCompanyLambda',
+      './lambda/updateCompanyLambda',
       {
         COMPANIES_TABLE: 'companies',
       }
@@ -167,7 +167,7 @@ private createCompanyFunctions(): void {
     this.functions.attachIoTPolicy = this.createLambdaFunction(
       'AttachIoTPolicyFunction',
       'attachIoTPolicy',
-      '../lambda/attachIoTPolicyLambda',
+      './lambda/attachIoTPolicyLambda',
       {
         IDENTITY_POOL_ID: identityPoolId,
       }
@@ -221,7 +221,7 @@ private createCompanyFunctions(): void {
     this.functions.addThingToGroup = this.createLambdaFunction(
       'AddThingToGroupFunction',
       'addThingToGroup',
-      '../lambda/addThingToGroupLambda',
+      './lambda/addThingToGroupLambda',
       {},
       false // No layer
     );
@@ -267,7 +267,7 @@ private createCompanyFunctions(): void {
     this.functions.republishDeviceConnectionStatus = this.createLambdaFunction(
       'RepublishDeviceConnectionStatusFunction',
       'republishDeviceConnectionStatus',
-      '../lambda/republishDeviceConnectionStatusLambda'
+      './lambda/republishDeviceConnectionStatusLambda'
     );
     
     // FIXED: Correct policy syntax
@@ -309,7 +309,7 @@ private createCompanyFunctions(): void {
     this.functions.createProvisioningClaim = this.createLambdaFunction(
       'CreateProvisioningClaimFunction',
       'createProvisioningClaim',
-      '../lambda/createProvisioningClaimLambda',
+      './lambda/createProvisioningClaimLambda',
       {
         TEMPLATE_NAME: this.config.iot.provisioningTemplateName,
         IDENTITY_POOL_ID: identityPoolId,
@@ -340,7 +340,7 @@ private createCompanyFunctions(): void {
     this.functions.postConfirmationLambda = this.createLambdaFunction(
       'PostConfirmationLambdaFunction',
       'postConfirmationLambda',
-      '../lambda/postConfirmationLambda',
+      './lambda/postConfirmationLambda',
       {
         IDENTITY_POOL_ID: identityPoolId,
         COMPANIES_TABLE: 'companies',
@@ -381,7 +381,7 @@ private createCompanyFunctions(): void {
     this.functions.deleteUserLambda = this.createLambdaFunction(
       'DeleteUserLambdaFunction',
       'deleteUserLambda',
-      '../lambda/deleteUserLambda',
+      './lambda/deleteUserLambda',
       {},
       false // No layer
     );
@@ -394,7 +394,7 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
     this.functions.getThingsByCompany = this.createLambdaFunction(
       'GetThingsByCompanyFunction',
       'getThingsByCompany',
-      '../lambda/getThingsByCompanyLambda',
+      './lambda/getThingsByCompanyLambda',
       {
         USER_POOL_ID: userPoolId,
       }
@@ -420,7 +420,7 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
     this.functions.preProvisioningHook = this.createLambdaFunction(
       'PreProvisioningHookFunction',
       'preProvisioningHook',
-      '../lambda/preProvisioningHookLambda',
+      './lambda/preProvisioningHookLambda',
       {
         USER_POOL_ID: userPoolId,
       }
@@ -448,7 +448,7 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
     this.functions.checkThingExists = this.createLambdaFunction(
       'CheckThingExistsFunction',
       'checkThingExists',
-      '../lambda/checkThingExistsLambda',
+      './lambda/checkThingExistsLambda',
       {
         USER_POOL_ID: userPoolId,
       }
