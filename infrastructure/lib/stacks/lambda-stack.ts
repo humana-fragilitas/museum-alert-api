@@ -93,6 +93,7 @@ export class LambdaStack extends BaseStack {
       environment,
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
+      logRetention: logs.RetentionDays.ONE_DAY
     });
 
     // 📝 Create log group separately

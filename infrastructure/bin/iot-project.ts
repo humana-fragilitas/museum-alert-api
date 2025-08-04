@@ -109,3 +109,4 @@ museumAlertTriggersStack.addDependency(museumAlertLambdaStack);
 // Config dependencies
 museumAlertConfigStack.addDependency(museumAlertApiStack);
 museumAlertConfigStack.addDependency(museumAlertCognitoStack);
+
