@@ -23,7 +23,7 @@ export class LambdaStack extends BaseStack {
     // Create Lambda functions using CloudFormation imports for Cognito values
     this.createCompanyFunctions();
     this.createIoTFunctions();
-    this.createCognitoTriggerFunctions();
+    this.createCognitoFunctions();
     this.createDeviceManagementFunctions();
     
     // Export Lambda function ARNs for other stacks to import
@@ -169,7 +169,7 @@ export class LambdaStack extends BaseStack {
       'attachIoTPolicy',
       './lambda/attachIoTPolicyLambda',
       {
-        IDENTITY_POOL_ID: identityPoolId,
+        IDENTITY_POOL_ID: identityPoolId, // OK
       }
     );
 
@@ -277,8 +277,7 @@ export class LambdaStack extends BaseStack {
       'createProvisioningClaim',
       './lambda/createProvisioningClaimLambda',
       {
-        TEMPLATE_NAME: this.config.iot.provisioningTemplateName,
-        IDENTITY_POOL_ID: identityPoolId,
+        TEMPLATE_NAME: this.config.iot.provisioningTemplateName
       }
     );
 
@@ -297,16 +296,13 @@ export class LambdaStack extends BaseStack {
     );
   }
 
-  private createCognitoTriggerFunctions(): void {
-    // Import Identity Pool ID (NOT direct reference)
-    const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
+  private createCognitoFunctions(): void {
 
     this.functions.postConfirmationLambda = this.createLambdaFunction(
       'PostConfirmationLambdaFunction',
       'postConfirmationLambda',
       './lambda/postConfirmationLambda',
       {
-        IDENTITY_POOL_ID: identityPoolId,
         COMPANIES_TABLE: 'companies',
       }
     );
@@ -340,6 +336,13 @@ export class LambdaStack extends BaseStack {
         ]
       })
     );
+
+    this.functions.postConfirmationLambda.addPermission('AllowCognitoInvoke', {
+      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceArn: `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`,
+    });
+
 
     this.functions.deleteUserLambda = this.createLambdaFunction(
       'DeleteUserLambdaFunction',

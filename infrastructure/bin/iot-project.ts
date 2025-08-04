@@ -6,7 +6,7 @@ import { IamStack } from '../lib/stacks/iam-stack';
 import { DatabaseStack } from '../lib/stacks/database-stack';
 import { CognitoStack } from '../lib/stacks/cognito-stack';
 import { LambdaStack } from '../lib/stacks/lambda-stack';
-import { CognitoWiringStack } from '../lib/stacks/cognito-wiring-stack';
+// import { CognitoWiringStack } from '../lib/stacks/cognito-wiring-stack';
 import { IoTStack } from '../lib/stacks/iot-stack';
 import { TriggersStack } from '../lib/stacks/triggers-stack';
 import { ApiGatewayStack } from '../lib/stacks/api-gateway-stack';
@@ -37,6 +37,9 @@ const museumAlertDatabaseStack = new DatabaseStack(app, `${config.projectName}-d
   config,
 });
 
+// TO DO: complete this
+// const sharedStack = new SharedInfraStack(app, 'SharedInfraStack');
+
 // PHASE 2: Cognito stack (completely independent - exports values)
 const museumAlertCognitoStack = new CognitoStack(app, `${config.projectName}-cognito-${config.stage}`, {
   ...stackProps,
@@ -51,11 +54,11 @@ const museumAlertLambdaStack = new LambdaStack(app, `${config.projectName}-lambd
 });
 
 // PHASE 4: Cognito Wiring (configures triggers using imports)
-const museumAlertCognitoWiringStack = new CognitoWiringStack(app, `${config.projectName}-cognito-wiring-${config.stage}`, {
-  ...stackProps,
-  config,
-  // Uses imports to get both user pool and lambda function
-});
+// const museumAlertCognitoWiringStack = new CognitoWiringStack(app, `${config.projectName}-cognito-wiring-${config.stage}`, {
+//   ...stackProps,
+//   config,
+//   // Uses imports to get both user pool and lambda function
+// });
 
 // PHASE 5: IoT stack (imports Lambda function)
 const museumAlertIotStack = new IoTStack(app, `${config.projectName}-iot-${config.stage}`, {
@@ -91,9 +94,12 @@ const museumAlertConfigStack = new ConfigOutputStack(app, `${config.projectName}
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
 museumAlertLambdaStack.addDependency(museumAlertIamStack);
 
+// TO DO: remove after testing
+museumAlertCognitoStack.addDependency(museumAlertLambdaStack);
+
 // Wiring dependencies (after both base stacks exist)
-museumAlertCognitoWiringStack.addDependency(museumAlertCognitoStack);
-museumAlertCognitoWiringStack.addDependency(museumAlertLambdaStack);
+//museumAlertCognitoWiringStack.addDependency(museumAlertCognitoStack);
+//museumAlertCognitoWiringStack.addDependency(museumAlertLambdaStack);
 
 // Service dependencies
 museumAlertIotStack.addDependency(museumAlertIamStack);
