@@ -1,13 +1,15 @@
-// lib/stacks/iot-stack.ts
+// lib/stacks/iot-stack.ts - IMPORTS VERSION
 import * as iot from 'aws-cdk-lib/aws-iot';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cdk from 'aws-cdk-lib';
+import * as customResources from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 
 export interface IoTStackProps extends BaseStackProps {
   iamRoles: { [key: string]: iam.Role };
+  // NO direct Lambda reference - will import via CloudFormation
 }
 
 export class IoTStack extends BaseStack {
@@ -21,7 +23,6 @@ export class IoTStack extends BaseStack {
     this.thingType = this.createThingType();
     this.createIoTPolicies();
     this.provisioningTemplate = this.createProvisioningTemplate();
-    // Note: Topic rules will be created separately to avoid circular dependencies
     
     this.applyStandardTags(this);
   }
@@ -48,18 +49,14 @@ export class IoTStack extends BaseStack {
         Statement: [
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Connect',
-            ],
+            Action: ['iot:Connect'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:client/\${cognito-identity.amazonaws.com:sub}`,
             ],
           },
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Publish',
-            ],
+            Action: ['iot:Publish'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/sensor/\${cognito-identity.amazonaws.com:sub}/*`,
               `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/status`,
@@ -67,10 +64,7 @@ export class IoTStack extends BaseStack {
           },
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Subscribe',
-              'iot:Receive',
-            ],
+            Action: ['iot:Subscribe', 'iot:Receive'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:topicfilter/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
               `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
@@ -88,19 +82,14 @@ export class IoTStack extends BaseStack {
         Statement: [
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Connect',
-            ],
+            Action: ['iot:Connect'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:client/\${cognito-identity.amazonaws.com:sub}`,
             ],
           },
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Subscribe',
-              'iot:Receive',
-            ],
+            Action: ['iot:Subscribe', 'iot:Receive'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:topicfilter/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
               `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/company/\${cognito-identity.amazonaws.com:sub}/*`,
@@ -108,9 +97,7 @@ export class IoTStack extends BaseStack {
           },
           {
             Effect: 'Allow',
-            Action: [
-              'iot:Publish',
-            ],
+            Action: ['iot:Publish'],
             Resource: [
               `arn:aws:iot:${this.config.region}:${accountId}:topic/museum-alert/device/\${cognito-identity.amazonaws.com:sub}/commands`,
             ],
@@ -120,17 +107,14 @@ export class IoTStack extends BaseStack {
     });
   }
 
-private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
+  private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
     // Get the account ID dynamically
     const accountId = cdk.Stack.of(this).account;
 
-    // Import the pre-provisioning hook Lambda ARN
+    // Import pre-provisioning hook Lambda ARN from Lambda stack
     const preProvisioningHookArn = cdk.Fn.importValue(`${this.config.projectName}-preprovisioninghook-arn-${this.config.stage}`);
 
-    // Create role for provisioning template
-// Create role for provisioning template with enhanced trust policy
-// Create role for provisioning template - SIMPLE and correct
-// Create role with EXACT production configuration
+    // Create role for provisioning template with EXACT production configuration
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
       assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
@@ -142,7 +126,7 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
       ],
       
-      // Add the EXACT inline policy from production (only 4 actions)
+      // Add the EXACT inline policy from production
       inlinePolicies: {
         'provisioning-policy': new iam.PolicyDocument({
           statements: [
@@ -154,22 +138,18 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
                 'iot:AttachThingPrincipal',
                 'iot:AttachPolicy',
               ],
-              resources: ['*'], // Wildcard like production
+              resources: ['*'],
             }),
           ],
         }),
       },
     });
 
-
-    // Get reference to the Lambda function for permissions
-    const preProvisioningHookFunction = lambda.Function.fromFunctionAttributes(
+    // Get Lambda function reference for permissions
+    const preProvisioningHookFunction = lambda.Function.fromFunctionArn(
       this, 
       'ImportedPreProvisioningHook', 
-      {
-        functionArn: preProvisioningHookArn,
-        sameEnvironment: true,
-      }
+      preProvisioningHookArn
     );
 
     const template = new iot.CfnProvisioningTemplate(this, 'ProvisioningTemplate', {
@@ -178,7 +158,7 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
       enabled: true,
       provisioningRoleArn: provisioningRole.roleArn,
       
-      // Add pre-provisioning hook
+      // Add pre-provisioning hook with imported ARN
       preProvisioningHook: {
         targetArn: preProvisioningHookArn,
         payloadVersion: '2020-04-01',
@@ -187,18 +167,10 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
       // EXACT COPY of your production template
       templateBody: JSON.stringify({
         Parameters: {
-          ThingName: {
-            Type: 'String',
-          },
-          Company: {
-            Type: 'String',
-          },
-          Region: {
-            Type: 'String',
-          },
-          AccountId: {
-            Type: 'String',
-          },
+          ThingName: { Type: 'String' },
+          Company: { Type: 'String' },
+          Region: { Type: 'String' },
+          AccountId: { Type: 'String' },
         },
         Resources: {
           thing: {
@@ -208,7 +180,7 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
               AttributePayload: {
                 Company: { Ref: 'Company' },
               },
-              ThingTypeName: this.config.iot.thingTypeName, // Keep the config value
+              ThingTypeName: this.config.iot.thingTypeName,
             },
             OverrideSettings: {
               AttributePayload: 'REPLACE',
@@ -225,7 +197,6 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
           policy: {
             Type: 'AWS::IoT::Policy',
             Properties: {
-              // EXACT COPY of your production policy - NO PolicyName, only PolicyDocument
               PolicyDocument: {
                 'Fn::Sub': [
                   '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"iot:Connect","Resource":"arn:aws:iot:${Region}:${AccountId}:client/${ThingName}"},{"Effect":"Allow","Action":"iot:Subscribe","Resource":"arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Receive","Resource":"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Publish","Resource":["arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events","arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands/ack"]}]}',
@@ -241,19 +212,56 @@ private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
           },
         },
         DeviceConfiguration: {
-          company: {
-            Ref: 'Company',
-          },
+          company: { Ref: 'Company' },
         },
       }),
     });
 
     // Grant IoT permission to invoke the pre-provisioning hook
-    preProvisioningHookFunction.addPermission('IoTProvisioningHookPermission', {
-      sourceAccount: accountId,
-      principal: new iam.ServicePrincipal('iot.amazonaws.com'),
-      sourceArn: `arn:aws:iot:${this.config.region}:${accountId}:provisioningtemplate/${this.config.iot.provisioningTemplateName}`,
+    // Since we're using an imported function, we need to use a custom resource to add the permission
+    const addLambdaPermission = new customResources.AwsCustomResource(this, 'AddLambdaPermission', {
+      onCreate: {
+        service: 'Lambda',
+        action: 'addPermission',
+        parameters: {
+          FunctionName: preProvisioningHookArn,
+          StatementId: `IoTProvisioningHookPermission-${this.config.stage}`,
+          Action: 'lambda:InvokeFunction',
+          Principal: 'iot.amazonaws.com',
+          SourceArn: `arn:aws:iot:${this.config.region}:${accountId}:provisioningtemplate/${this.config.iot.provisioningTemplateName}`,
+        },
+        region: this.config.region,
+        physicalResourceId: customResources.PhysicalResourceId.of(`lambda-permission-${this.config.stage}`),
+      },
+      onUpdate: {
+        service: 'Lambda',
+        action: 'addPermission',
+        parameters: {
+          FunctionName: preProvisioningHookArn,
+          StatementId: `IoTProvisioningHookPermission-${this.config.stage}`,
+          Action: 'lambda:InvokeFunction',
+          Principal: 'iot.amazonaws.com',
+          SourceArn: `arn:aws:iot:${this.config.region}:${accountId}:provisioningtemplate/${this.config.iot.provisioningTemplateName}`,
+        },
+        region: this.config.region,
+        physicalResourceId: customResources.PhysicalResourceId.of(`lambda-permission-${this.config.stage}`),
+      },
+      onDelete: {
+        service: 'Lambda',
+        action: 'removePermission',
+        parameters: {
+          FunctionName: preProvisioningHookArn,
+          StatementId: `IoTProvisioningHookPermission-${this.config.stage}`,
+        },
+        region: this.config.region,
+      },
+      policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
+        resources: [preProvisioningHookArn],
+      }),
     });
+
+    // Ensure the permission is added before creating the provisioning template
+    template.node.addDependency(addLambdaPermission);
 
     return template;
   }

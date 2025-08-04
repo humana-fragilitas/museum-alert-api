@@ -1,78 +1,52 @@
-// lib/stacks/cognito-stack.ts
+// lib/stacks/cognito-stack.ts - EXPORTS ONLY VERSION
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
-
-export interface CognitoStackProps extends BaseStackProps {
-  // We'll add Lambda triggers later via separate method
-}
 
 export class CognitoStack extends BaseStack {
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
   public readonly identityPool: cognito.CfnIdentityPool;
 
-  constructor(scope: Construct, id: string, props: CognitoStackProps) {
+  constructor(scope: Construct, id: string, props: BaseStackProps) {
     super(scope, id, props);
 
     this.userPool = this.createUserPool();
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
     
-    // ENABLE Lambda trigger configuration
-    this.addLambdaTrigger();
-    
-    // Export values for other stacks to import
+    // Export values for other stacks to import (NO trigger configuration here)
     this.createOutputs();
     
     this.applyStandardTags(this);
   }
 
-  private createOutputs(): void {
-    new cdk.CfnOutput(this, 'UserPoolId', {
-      value: this.userPool.userPoolId,
-      description: 'Cognito User Pool ID for Angular app',
-      exportName: `${this.config.projectName}-user-pool-id-${this.config.stage}`,
-    });
-
-    new cdk.CfnOutput(this, 'UserPoolClientId', {
-      value: this.userPoolClient.userPoolClientId,
-      description: 'Cognito User Pool Client ID for Angular app',
-      exportName: `${this.config.projectName}-user-pool-client-id-${this.config.stage}`,
-    });
-
-    new cdk.CfnOutput(this, 'UserPoolArn', {
-      value: this.userPool.userPoolArn,
-      exportName: `${this.config.projectName}-user-pool-arn-${this.config.stage}`,
-    });
-
-    new cdk.CfnOutput(this, 'IdentityPoolId', {
-      value: this.identityPool.ref,
-      description: 'Cognito Identity Pool ID for Angular app',
-      exportName: `${this.config.projectName}-identity-pool-id-${this.config.stage}`,
-    });
-
-    new cdk.CfnOutput(this, 'Region', {
-      value: this.config.region,
-      description: 'AWS Region for Angular app',
-    });
-  }
-
   private createUserPool(): cognito.UserPool {
-    const userPool = new cognito.UserPool(this, 'UserPool', {
+    return new cognito.UserPool(this, 'UserPool', {
       userPoolName: this.config.cognito.userPoolName,
       
       // Sign-in configuration - ONLY email, no username
       signInAliases: {
         email: true,
-        username: false, // Disable username to allow email format
+        username: false,
       },
       
-      // Self sign-up configuration (based on "open-signup" in your pool name)
+      // Self sign-up configuration
       selfSignUpEnabled: true,
+      
+      // CRITICAL: Auto-verify email addresses
+      autoVerify: {
+        email: true,
+      },
+      
+      // Email verification settings
+      userVerification: {
+        emailSubject: 'Verify your email for Museum Alert',
+        emailBody: 'Thank you for signing up to Museum Alert! Your verification code is {####}',
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+      },
       
       // Password policy
       passwordPolicy: {
@@ -86,10 +60,10 @@ export class CognitoStack extends BaseStack {
       // MFA disabled for simplicity
       mfa: cognito.Mfa.OFF,
       
-      // Account recovery
+      // Account recovery - EMAIL ONLY (this is important for verification)
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       
-      // Email configuration
+      // Email configuration - CRITICAL: Use Cognito's built-in email
       email: cognito.UserPoolEmail.withCognito(),
       
       // Standard attributes
@@ -137,8 +111,6 @@ export class CognitoStack extends BaseStack {
         ? cdk.RemovalPolicy.RETAIN 
         : cdk.RemovalPolicy.DESTROY,
     });
-
-    return userPool;
   }
 
   private createUserPoolClient(): cognito.UserPoolClient {
@@ -153,8 +125,6 @@ export class CognitoStack extends BaseStack {
         userSrp: true,
       },
       
-      // NO OAuth configuration - not needed for Amplify UI
-      
       // Token validity
       accessTokenValidity: cdk.Duration.hours(1),
       idTokenValidity: cdk.Duration.hours(1),
@@ -168,7 +138,7 @@ export class CognitoStack extends BaseStack {
   private createIdentityPool(): cognito.CfnIdentityPool {
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
       identityPoolName: this.config.cognito.identityPoolName,
-      allowUnauthenticatedIdentities: false, // Require authentication
+      allowUnauthenticatedIdentities: false,
       cognitoIdentityProviders: [
         {
           clientId: this.userPoolClient.userPoolClientId,
@@ -203,7 +173,7 @@ export class CognitoStack extends BaseStack {
                 'iot:Subscribe',
                 'iot:Receive',
               ],
-              resources: ['*'], // You may want to restrict this based on your IoT topic structure
+              resources: ['*'],
             }),
           ],
         }),
@@ -221,55 +191,26 @@ export class CognitoStack extends BaseStack {
     return identityPool;
   }
 
-  private addLambdaTrigger(): void {
-    // Import the Lambda function ARN from the Lambda stack
-    const postConfirmationLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-post-confirmation-arn-${this.config.stage}`);
-    
-    // Get the Lambda function reference with sameEnvironment=true
-    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(
-      this, 
-      'ImportedPostConfirmationLambda', 
-      {
-        functionArn: postConfirmationLambdaArn,
-        sameEnvironment: true, // This fixes the warning and enables permissions
-      }
-    );
-
-    // AUTOMATICALLY configure the trigger (not manual!)
-    const cfnUserPool = this.userPool.node.defaultChild as cognito.CfnUserPool;
-    cfnUserPool.lambdaConfig = {
-      postConfirmation: postConfirmationLambdaArn,
-    };
-
-    // TO DO: BEGIN refactor after testing
-    // const cognitoPolicy = new iam.PolicyStatement({
-    //       effect: iam.Effect.ALLOW,
-    //       actions: [
-    //         'cognito-idp:AdminDeleteUser',
-    //         'cognito-idp:AdminGetUser',
-    //         'cognito-idp:ListUsers',
-    //         'cognito-idp:AdminUpdateUserAttributes',
-    //         'cognito-idp:AdminAddUserToGroup',
-    //         'cognito-idp:CreateGroup'
-    //       ],
-    //       resources: [
-    //         `arn:aws:cognito-idp:${this.config.region}:*:userpool/*`,
-    //       ],
-    //     });
-    
-    // postConfirmationFunction.addToRolePolicy(cognitoPolicy);
-    // TO DO: END refactor after testing
-
-    // Grant Cognito permission to invoke the Lambda
-    postConfirmationFunction.addPermission('CognitoTriggerPermission', {
-      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
-      sourceArn: this.userPool.userPoolArn,
+  private createOutputs(): void {
+    // Export ALL values for other stacks to import
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: this.userPool.userPoolId,
+      exportName: `${this.config.projectName}-user-pool-id-${this.config.stage}`,
     });
 
-    // Add output to confirm trigger is configured
-    new cdk.CfnOutput(this, 'PostConfirmationTriggerStatus', {
-      value: 'AUTOMATICALLY CONFIGURED',
-      description: '✅ PostConfirmation trigger configured via IaC',
+    new cdk.CfnOutput(this, 'UserPoolClientId', {
+      value: this.userPoolClient.userPoolClientId,
+      exportName: `${this.config.projectName}-user-pool-client-id-${this.config.stage}`,
+    });
+
+    new cdk.CfnOutput(this, 'UserPoolArn', {
+      value: this.userPool.userPoolArn,
+      exportName: `${this.config.projectName}-user-pool-arn-${this.config.stage}`,
+    });
+
+    new cdk.CfnOutput(this, 'IdentityPoolId', {
+      value: this.identityPool.ref,
+      exportName: `${this.config.projectName}-identity-pool-id-${this.config.stage}`,
     });
   }
 }

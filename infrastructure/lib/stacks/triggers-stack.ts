@@ -1,4 +1,4 @@
-// lib/stacks/triggers-stack.ts
+// lib/stacks/triggers-stack.ts - IMPORTS VERSION
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iot from 'aws-cdk-lib/aws-iot';
@@ -10,30 +10,23 @@ export class TriggersStack extends BaseStack {
   constructor(scope: Construct, id: string, props: BaseStackProps) {
     super(scope, id, props);
 
-    // Only handle IoT Topic Rules - Cognito trigger is handled by CognitoStack
     this.createIoTTopicRules();
     
     this.applyStandardTags(this);
   }
 
   private createIoTTopicRules(): void {
-    // Import Lambda ARNs
+    // Import Lambda ARNs from Lambda stack
     const republishArn = cdk.Fn.importValue(`${this.config.projectName}-republishdeviceconnectionstatus-arn-${this.config.stage}`);
     const addThingArn = cdk.Fn.importValue(`${this.config.projectName}-addthingtogroup-arn-${this.config.stage}`);
 
-    // Get Lambda functions by ARN
-    const republishFunction = lambda.Function.fromFunctionAttributes(
-      this, 'ImportedRepublishFunction', {
-        functionArn: republishArn,
-        sameEnvironment: true
-      }
+    // Get Lambda functions by ARN for permissions
+    const republishFunction = lambda.Function.fromFunctionArn(
+      this, 'ImportedRepublishFunction', republishArn
     );
     
-    const addThingFunction = lambda.Function.fromFunctionAttributes(
-      this, 'ImportedAddThingFunction', {
-        functionArn: addThingArn,
-        sameEnvironment: true
-      }
+    const addThingFunction = lambda.Function.fromFunctionArn(
+      this, 'ImportedAddThingFunction', addThingArn
     );
 
     // Rule for device connection status
@@ -70,61 +63,59 @@ export class TriggersStack extends BaseStack {
       },
     });
 
-const ruleExecutionRole = new iam.Role(this, 'RuleExecutionRole', {
-  roleName: this.createResourceName('role', 'rule-execution'),
-  assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
+    // Create execution role for republish rule
+    const ruleExecutionRole = new iam.Role(this, 'RuleExecutionRole', {
+      roleName: this.createResourceName('role', 'rule-execution'),
+      assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
 
-  // EXACT managed policies for IoT Rule Actions and Logging
-  managedPolicies: [
-    iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
-    iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
-  ],
-
-  // Inline policy with necessary permissions
-  inlinePolicies: {
-    'iot-rule-action-policy': new iam.PolicyDocument({
-      statements: [
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: [
-            'iot:Publish',
-            'logs:CreateLogStream',
-            'logs:PutLogEvents',
-            'logs:DescribeLogStreams',
-          ],
-          resources: ['*'], // Wildcard as per production standard
-        }),
+      // EXACT managed policies for IoT Rule Actions and Logging
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
       ],
-    }),
-  },
-});
 
-
-const forwardToCompanyEventsRule = new iot.CfnTopicRule(this, 'ForwardToCompanyEventsRule', {
-  ruleName: `${this.config.projectName.replace('-', '')}_forward_to_company_events_${this.config.stage}`,
-  topicRulePayload: {
-    sql: "SELECT type, cid, topic(4) AS sn, timestamp() AS timestamp, data FROM 'companies/+/devices/+/events'",
-    description: 'Forward device events to company-specific topics and CloudWatch Logs',
-    actions: [
-      {
-        republish: {
-          roleArn: ruleExecutionRole.roleArn,
-          topic: 'companies/${topic(2)}/events'
-        }
+      // Inline policy with necessary permissions
+      inlinePolicies: {
+        'iot-rule-action-policy': new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'iot:Publish',
+                'logs:CreateLogStream',
+                'logs:PutLogEvents',
+                'logs:DescribeLogStreams',
+              ],
+              resources: ['*'],
+            }),
+          ],
+        }),
       },
-      {
-        cloudwatchLogs: {
-          roleArn: ruleExecutionRole.roleArn,
-          logGroupName: `/aws/iot/companyEvents`
-        }
+    });
+
+    // Forward to company events rule
+    const forwardToCompanyEventsRule = new iot.CfnTopicRule(this, 'ForwardToCompanyEventsRule', {
+      ruleName: `${this.config.projectName.replace('-', '')}_forward_to_company_events_${this.config.stage}`,
+      topicRulePayload: {
+        sql: "SELECT type, cid, topic(4) AS sn, timestamp() AS timestamp, data FROM 'companies/+/devices/+/events'",
+        description: 'Forward device events to company-specific topics and CloudWatch Logs',
+        actions: [
+          {
+            republish: {
+              roleArn: ruleExecutionRole.roleArn,
+              topic: 'companies/${topic(2)}/events'
+            }
+          },
+          {
+            cloudwatchLogs: {
+              roleArn: ruleExecutionRole.roleArn,
+              logGroupName: `/aws/iot/companyEvents`
+            }
+          }
+        ],
+        ruleDisabled: false
       }
-    ],
-    ruleDisabled: false
-  }
-});
-
-
-    
+    });
 
     // Grant permissions for IoT to invoke Lambda functions
     republishFunction.addPermission('IoTTopicRulePermission', {
@@ -139,8 +130,8 @@ const forwardToCompanyEventsRule = new iot.CfnTopicRule(this, 'ForwardToCompanyE
 
     // Output confirmation
     new cdk.CfnOutput(this, 'IoTRulesConfigured', {
-      value: 'AUTOMATICALLY CONFIGURED',
-      description: '✅ IoT Topic Rules configured via IaC',
+      value: 'AUTOMATICALLY CONFIGURED VIA IMPORTS',
+      description: '✅ IoT Topic Rules configured via CloudFormation imports',
     });
   }
 }

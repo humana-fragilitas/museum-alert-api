@@ -1,14 +1,12 @@
-// Updated lambda-stack.ts with proper asset handling
+// lib/stacks/lambda-stack.ts - COMPLETELY DECOUPLED VERSION
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 
 export interface LambdaStackProps extends BaseStackProps {
-  // Remove all external dependencies to avoid circular references
+  // NO construct references - completely independent
 }
 
 export class LambdaStack extends BaseStack {
@@ -21,13 +19,13 @@ export class LambdaStack extends BaseStack {
     // Create the shared layer FIRST
     this.sharedLayer = this.createSharedLayer();
 
-    // Create Lambda functions with imported values from other stacks
+    // Create Lambda functions using CloudFormation imports for Cognito values
     this.createCompanyFunctions();
     this.createIoTFunctions();
     this.createCognitoTriggerFunctions();
     this.createDeviceManagementFunctions();
     
-    // Export Lambda ARNs for other stacks
+    // Export Lambda function ARNs for other stacks to import
     this.createOutputs();
     
     this.applyStandardTags(this);
@@ -37,7 +35,6 @@ export class LambdaStack extends BaseStack {
     return new lambda.LayerVersion(this, 'SharedLayer', {
       layerVersionName: `${this.config.projectName}-shared-layer-${this.config.stage}`,
       code: lambda.Code.fromAsset('./lambda/lambdaLayer', {
-        // Add bundling options to avoid infinite loops
         bundling: {
           image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [
@@ -48,14 +45,13 @@ export class LambdaStack extends BaseStack {
             ].join(' && ')
           ],
         },
-        // Exclude problematic directories
         exclude: [
           'node_modules',
           'cdk.out',
           '.git',
           '*.log',
           '.DS_Store',
-          'libraries', // Exclude the Arduino libraries that are causing the long path
+          'libraries',
         ],
       }),
       compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
@@ -66,7 +62,6 @@ export class LambdaStack extends BaseStack {
     });
   }
 
-  // Helper method to create Lambda with safe asset bundling
   private createLambdaFunction(
     id: string, 
     functionName: string, 
@@ -74,12 +69,11 @@ export class LambdaStack extends BaseStack {
     environment: { [key: string]: string } = {},
     useLayer: boolean = true
   ): lambda.Function {
-    return new lambda.Function(this, id, {
+    const func = new lambda.Function(this, id, {
       functionName,
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(assetPath, {
-        // Safe bundling options
         exclude: [
           'cdk.out',
           '.git',
@@ -99,10 +93,16 @@ export class LambdaStack extends BaseStack {
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
     });
+
+    // CRITICAL: Add basic CloudWatch logging permissions to ALL Lambda functions
+    func.role?.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+
+    return func;
   }
 
-
-private createCompanyFunctions(): void {
+  private createCompanyFunctions(): void {
     // getCompany function
     this.functions.getCompany = this.createLambdaFunction(
       'GetCompanyFunction',
@@ -113,14 +113,11 @@ private createCompanyFunctions(): void {
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.getCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'getCompanyLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
-            actions: [
-              'dynamodb:GetItem'
-            ],
+            actions: ['dynamodb:GetItem'],
             resources: [
               `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
             ]
@@ -139,15 +136,11 @@ private createCompanyFunctions(): void {
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.updateCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'updateCompanyLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
-            actions: [
-              'dynamodb:GetItem',
-              'dynamodb:UpdateItem'
-            ],
+            actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
             resources: [
               `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
             ]
@@ -158,7 +151,7 @@ private createCompanyFunctions(): void {
   }
 
   private createIoTFunctions(): void {
-    // Import Identity Pool ID
+    // Import Identity Pool ID from Cognito stack (NO direct reference)
     const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
 
     // attachIoTPolicy function
@@ -171,42 +164,31 @@ private createCompanyFunctions(): void {
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.attachIoTPolicy.role?.attachInlinePolicy(
       new iam.Policy(this, 'attachIoTPolicyLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:CreatePolicy'
-            ],
+            actions: ['iot:CreatePolicy'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:policy/company-iot-policy-*`
             ],
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:AttachPolicy'
-            ],
-            resources: [
-              '*'
-            ],
+            actions: ['iot:AttachPolicy'],
+            resources: ['*'],
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'cognito-identity:GetId'
-            ],
+            actions: ['cognito-identity:GetId'],
             resources: [
               `arn:aws:cognito-identity:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:identitypool/*`
             ],
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'cognito-idp:AdminUpdateUserAttributes'
-            ],
+            actions: ['cognito-idp:AdminUpdateUserAttributes'],
             resources: [
               `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
             ],
@@ -215,33 +197,26 @@ private createCompanyFunctions(): void {
       })
     );
 
-    // addThingToGroup function (no layer)
+    // addThingToGroup function
     this.functions.addThingToGroup = this.createLambdaFunction(
       'AddThingToGroupFunction',
       'addThingToGroup',
       './lambda/addThingToGroupLambda',
       {},
-      false // No layer
+      false
     );
 
-    // FIXED: Correct policy syntax
     this.functions.addThingToGroup.role?.attachInlinePolicy(
       new iam.Policy(this, 'addThingToGroupLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeThing'
-            ],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
-            ],
+            actions: ['iot:DescribeThing'],
+            resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`],
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:AddThingToThingGroup'
-            ],
+            actions: ['iot:AddThingToThingGroup'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
@@ -249,10 +224,7 @@ private createCompanyFunctions(): void {
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeThingGroup',
-              'iot:CreateThingGroup'
-            ],
+            actions: ['iot:DescribeThingGroup', 'iot:CreateThingGroup'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
             ],
@@ -268,36 +240,23 @@ private createCompanyFunctions(): void {
       './lambda/republishDeviceConnectionStatusLambda'
     );
     
-    // FIXED: Correct policy syntax
     this.functions.republishDeviceConnectionStatus.role?.attachInlinePolicy(
       new iam.Policy(this, 'republishDeviceConnectionStatusLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeThing'
-            ],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
-            ],
+            actions: ['iot:DescribeThing'],
+            resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`],
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:Publish',
-            ],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:topic/companies/*/events`,
-            ],
+            actions: ['iot:Publish'],
+            resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:topic/companies/*/events`],
           }),
-                    new iam.PolicyStatement({
+          new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeEndpoint'
-            ],
-            resources: [
-              '*'
-            ],
+            actions: ['iot:DescribeEndpoint'],
+            resources: ['*']
           })
         ]
       })
@@ -314,15 +273,12 @@ private createCompanyFunctions(): void {
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.createProvisioningClaim.role?.attachInlinePolicy(
       new iam.Policy(this, 'createProvisioningClaimLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:CreateProvisioningClaim'
-            ],
+            actions: ['iot:CreateProvisioningClaim'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:provisioningtemplate/*`
             ],
@@ -333,6 +289,7 @@ private createCompanyFunctions(): void {
   }
 
   private createCognitoTriggerFunctions(): void {
+    // Import Identity Pool ID (NOT direct reference)
     const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
 
     this.functions.postConfirmationLambda = this.createLambdaFunction(
@@ -345,7 +302,6 @@ private createCompanyFunctions(): void {
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.postConfirmationLambda.role?.attachInlinePolicy(
       new iam.Policy(this, 'postConfirmationLambdaPolicy', {
         statements: [
@@ -381,13 +337,13 @@ private createCompanyFunctions(): void {
       'deleteUserLambda',
       './lambda/deleteUserLambda',
       {},
-      false // No layer
+      false
     );
   }
 
   private createDeviceManagementFunctions(): void {
-
-const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
+    // Import User Pool ID (NOT direct reference)
+    const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
 
     this.functions.getThingsByCompany = this.createLambdaFunction(
       'GetThingsByCompanyFunction',
@@ -398,15 +354,12 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.getThingsByCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'getThingsByCompanyLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:ListThingsInThingGroup'
-            ],
+            actions: ['iot:ListThingsInThingGroup'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
             ]
@@ -424,19 +377,15 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.preProvisioningHook.role?.attachInlinePolicy(
       new iam.Policy(this, 'preProvisioningHookLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeThing',
-              'iot:DescribeCertificate' // <-- ADD THIS PERMISSION
-            ],
+            actions: ['iot:DescribeThing', 'iot:DescribeCertificate'],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
-              `arn:aws:iot:${this.region}:${this.account}:cert/*`
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:cert/*`
             ]
           })
         ]
@@ -452,18 +401,13 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
       }
     );
 
-    // FIXED: Correct policy syntax
     this.functions.checkThingExists.role?.attachInlinePolicy(
       new iam.Policy(this, 'checkThingExistsLambdaPolicy', {
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: [
-              'iot:DescribeThing'
-            ],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`
-            ]
+            actions: ['iot:DescribeThing'],
+            resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`]
           })
         ]
       })
@@ -471,59 +415,12 @@ const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-$
   }
 
   private createOutputs(): void {
-    if (this.functions.postConfirmationLambda) {
-      new cdk.CfnOutput(this, 'PostConfirmationLambdaArn', {
-        value: this.functions.postConfirmationLambda.functionArn,
-        exportName: `${this.config.projectName}-post-confirmation-arn-${this.config.stage}`,
-      });
-    }
-
+    // Export ALL Lambda function ARNs for other stacks to import
     Object.entries(this.functions).forEach(([name, func]) => {
-      if (name !== 'postConfirmationLambda') {
-        new cdk.CfnOutput(this, `${name}Arn`, {
-          value: func.functionArn,
-          exportName: `${this.config.projectName}-${name.toLowerCase()}-arn-${this.config.stage}`,
-        });
-      }
-    });
-  }
-
-  private addDynamoDbPermissions(functions: lambda.Function[]): void {
-    const dynamoPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'dynamodb:GetItem',
-        'dynamodb:PutItem',
-        'dynamodb:UpdateItem',
-        'dynamodb:DeleteItem',
-        'dynamodb:Query',
-        'dynamodb:Scan',
-      ],
-      resources: [
-        `arn:aws:dynamodb:${this.config.region}:${this.account}:table/companies*`,
-      ],
-    });
-
-    functions.forEach(func => {
-      func.addToRolePolicy(dynamoPolicy);
-    });
-  }
-
-  private addCognitoPermissions(functions: lambda.Function[]): void {
-    const cognitoPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'cognito-idp:AdminDeleteUser',
-        'cognito-idp:AdminGetUser',
-        'cognito-idp:ListUsers',
-      ],
-      resources: [
-        `arn:aws:cognito-idp:${this.config.region}:${this.account}:userpool/*`,
-      ],
-    });
-
-    functions.forEach(func => {
-      func.addToRolePolicy(cognitoPolicy);
+      new cdk.CfnOutput(this, `${name}Arn`, {
+        value: func.functionArn,
+        exportName: `${this.config.projectName}-${name.toLowerCase()}-arn-${this.config.stage}`,
+      });
     });
   }
 }

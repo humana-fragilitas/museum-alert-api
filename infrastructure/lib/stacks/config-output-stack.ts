@@ -1,4 +1,4 @@
-// lib/stacks/config-output-stack.ts
+// lib/stacks/config-output-stack.ts - IMPORTS VERSION
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
@@ -14,7 +14,7 @@ export class ConfigOutputStack extends BaseStack {
   }
 
   private createAngularConfig(): void {
-    // Import values from other stacks
+    // Import values from other stacks via CloudFormation
     const apiUrl = cdk.Fn.importValue(`${this.config.projectName}-api-url-${this.config.stage}`);
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
     const userPoolClientId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-client-id-${this.config.stage}`);
@@ -124,6 +124,5 @@ export class ConfigOutputStack extends BaseStack {
         ),
         description: '🔧 COPY THIS: Arduino Sketch Configuration (config.h)',
       });
-
   }
 }
