@@ -227,3 +227,32 @@ export class CognitoStack extends BaseStack {
     });
   }
 }
+
+/*
+
+Standard Approach: Configure Triggers at UserPool Definition
+Here’s how the CDK expects you to do it:
+
+ts
+const postConfirmationFunction = new lambda.Function(this, 'PostConfirmationFunction', {
+  // your config here
+});
+
+const userPool = new cognito.UserPool(this, 'UserPool', {
+  userPoolName: 'your-pool',
+  lambdaTriggers: {
+    postConfirmation: postConfirmationFunction,
+  },
+  // other config...
+});
+This setup handles:
+
+Permissions (addPermission is internally managed by CDK)
+
+Log group creation
+
+Trigger registration on the pool
+
+And you get full Cognito behavior, including email resends without any hackery or manual updates.
+
+*/
