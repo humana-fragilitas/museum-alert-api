@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 
@@ -92,6 +93,13 @@ export class LambdaStack extends BaseStack {
       environment,
       timeout: cdk.Duration.seconds(this.config.lambda.timeout),
       memorySize: this.config.lambda.memorySize,
+    });
+
+    // 📝 Create log group separately
+    new logs.LogGroup(this, `${functionName}LogGroup`, {
+      logGroupName: `/aws/lambda/${func.functionName}`,
+      retention: logs.RetentionDays.ONE_DAY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // CRITICAL: Add basic CloudWatch logging permissions to ALL Lambda functions

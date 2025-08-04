@@ -1,5 +1,6 @@
 // lib/stacks/config-output-stack.ts - IMPORTS VERSION
 import * as cdk from 'aws-cdk-lib';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
 import * as customResources from 'aws-cdk-lib/custom-resources';
@@ -34,6 +35,7 @@ export class ConfigOutputStack extends BaseStack {
       policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: customResources.AwsCustomResourcePolicy.ANY_RESOURCE,
       }),
+      logRetention: logs.RetentionDays.THREE_DAYS,
     });
 
     const iotEndpoint = iotEndpointProvider.getResponseField('endpointAddress');

@@ -3,6 +3,7 @@ import * as iot from 'aws-cdk-lib/aws-iot';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cdk from 'aws-cdk-lib';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as customResources from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
@@ -258,6 +259,7 @@ export class IoTStack extends BaseStack {
       policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [preProvisioningHookArn],
       }),
+      logRetention: logs.RetentionDays.THREE_DAYS,
     });
 
     // Ensure the permission is added before creating the provisioning template

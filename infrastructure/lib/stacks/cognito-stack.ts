@@ -36,16 +36,23 @@ export class CognitoStack extends BaseStack {
       // Self sign-up configuration
       selfSignUpEnabled: true,
       
+      // CRITICAL: Enable account verification
+      userVerification: {
+        emailSubject: 'Verify your email for Museum Alert',
+        emailBody: 'Thank you for signing up to Museum Alert! Your verification code is {####}',
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+      },
+      
       // CRITICAL: Auto-verify email addresses
       autoVerify: {
         email: true,
       },
       
-      // Email verification settings
-      userVerification: {
-        emailSubject: 'Verify your email for Museum Alert',
-        emailBody: 'Thank you for signing up to Museum Alert! Your verification code is {####}',
-        emailStyle: cognito.VerificationEmailStyle.CODE,
+      // CRITICAL: User invitation settings (if using admin-created users)
+      userInvitation: {
+        emailSubject: 'Welcome to Museum Alert',
+        emailBody: 'Your username is {username} and temporary password is {####}',
+        smsMessage: 'Your username is {username} and temporary password is {####}',
       },
       
       // Password policy
@@ -66,6 +73,12 @@ export class CognitoStack extends BaseStack {
       // Email configuration - CRITICAL: Use Cognito's built-in email
       email: cognito.UserPoolEmail.withCognito(),
       
+      // CRITICAL: Enable device tracking for better security
+      deviceTracking: {
+        challengeRequiredOnNewDevice: false,
+        deviceOnlyRememberedOnUserPrompt: false,
+      },
+      
       // Standard attributes
       standardAttributes: {
         email: {
@@ -85,7 +98,7 @@ export class CognitoStack extends BaseStack {
       // Custom attributes
       customAttributes: {
         Company: new cognito.StringAttribute({ 
-          minLen: 3, 
+          minLen: 36, 
           maxLen: 36, 
           mutable: true 
         }),
@@ -100,7 +113,7 @@ export class CognitoStack extends BaseStack {
           mutable: true 
         }),
         secondaryCompany: new cognito.StringAttribute({ 
-          minLen: 3, 
+          minLen: 36, 
           maxLen: 36, 
           mutable: true 
         }),

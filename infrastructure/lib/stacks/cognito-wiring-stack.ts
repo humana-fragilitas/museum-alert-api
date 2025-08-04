@@ -1,6 +1,7 @@
 // lib/stacks/cognito-wiring-stack.ts - FIXED VERSION
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as customResources from 'aws-cdk-lib/custom-resources';
@@ -24,31 +25,53 @@ export class CognitoWiringStack extends BaseStack {
     const postConfirmationArn = cdk.Fn.importValue(`${this.config.projectName}-postconfirmationlambda-arn-${this.config.stage}`);
 
     // Get the Lambda function by ARN for permissions
-    const postConfirmationFunction = lambda.Function.fromFunctionArn(
-      this, 
-      'ImportedPostConfirmationLambda', 
-      postConfirmationArn
-    );
+    const postConfirmationFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedPostConfirmationLambda', {
+      functionArn: postConfirmationArn,
+      sameEnvironment: true,
+    });
+
 
     // Use AwsCustomResource to update the User Pool with Lambda trigger
-    const updateUserPoolTrigger = new customResources.AwsCustomResource(this, 'UpdateUserPoolTrigger', {
+    const PoolTrigger = new customResources.AwsCustomResource(this, 'PoolTrigger', {
+      onCreate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'updateUserPool',
+        parameters: {
+          UserPoolId: userPoolId,
+          LambdaConfig: {
+            PostConfirmation: postConfirmationFunction.functionName,
+          },
+        },
+        region: this.config.region,
+        physicalResourceId: customResources.PhysicalResourceId.of(`user-pool-trigger-${this.config.stage}`),
+      },
       onUpdate: {
         service: 'CognitoIdentityServiceProvider',
         action: 'updateUserPool',
         parameters: {
           UserPoolId: userPoolId,
           LambdaConfig: {
-            PostConfirmation: postConfirmationArn,
+            PostConfirmation: postConfirmationFunction.functionName,
           },
         },
         region: this.config.region,
-        physicalResourceId: customResources.PhysicalResourceId.of(`user-pool-trigger-${userPoolId}`),
+        physicalResourceId: customResources.PhysicalResourceId.of(`user-pool-trigger-${this.config.stage}`),
+      },
+      onDelete: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'updateUserPool',
+        parameters: {
+          UserPoolId: userPoolId,
+          LambdaConfig: {},
+        },
+        region: this.config.region,
       },
       policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [
           cdk.Fn.sub('arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*')
         ],
       }),
+      logRetention: logs.RetentionDays.ONE_DAY
     });
 
     // Grant Cognito permission to invoke the Lambda

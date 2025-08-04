@@ -1,5 +1,8 @@
 // lib/stacks/api-gateway-stack.ts - IMPORTS VERSION
 import * as cdk from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
@@ -20,43 +23,69 @@ export class ApiGatewayStack extends BaseStack {
     this.applyStandardTags(this);
   }
 
-  private createRestApi(): apigateway.RestApi {
-    return new apigateway.RestApi(this, 'MuseumAlertApi', {
-      restApiName: this.config.apiGateway.apiName,
-      description: 'Museum Alert API for IoT device management',
-      
-      // CORS configuration for web app
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS, // Restrict this in production
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: [
-          'Content-Type',
-          'X-Amz-Date',
-          'Authorization',
-          'X-Api-Key',
-          'X-Amz-Security-Token',
-        ],
-      },
-      
-      // Deploy automatically
-      deploy: true,
-      deployOptions: {
-        stageName: this.config.stage,
-        throttlingRateLimit: 100, // requests per second
-        throttlingBurstLimit: 200, // burst capacity
-        
-        // DISABLE CloudWatch logging to avoid role requirement
-        loggingLevel: apigateway.MethodLoggingLevel.OFF,
-        dataTraceEnabled: false,
-        metricsEnabled: true, // Keep metrics, disable logs
-      },
-      
-      // IMPORTANT: Ensure endpoint configuration is REGIONAL (default)
-      endpointConfiguration: {
-        types: [apigateway.EndpointType.REGIONAL]
-      },
-    });
-  }
+private createRestApi(): apigateway.RestApi {
+  // Create a CloudWatch Logs group for access logs
+  const logGroup = new logs.LogGroup(this, 'ApiAccessLogs', {
+    retention: logs.RetentionDays.ONE_DAY,
+    removalPolicy: this.config.stage === 'prod'
+      ? cdk.RemovalPolicy.RETAIN
+      : cdk.RemovalPolicy.DESTROY,
+  });
+
+  // Create IAM role explicitly (optional - CDK creates it by default if cloudWatchRole is true)
+  const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
+    assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+    managedPolicies: [
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonAPIGatewayPushToCloudWatchLogs'),
+    ],
+  });
+
+  const api = new apigateway.RestApi(this, 'MuseumAlertApi', {
+    restApiName: this.config.apiGateway.apiName,
+    description: 'Museum Alert API for IoT device management',
+
+    defaultCorsPreflightOptions: {
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowMethods: apigateway.Cors.ALL_METHODS,
+      allowHeaders: [
+        'Content-Type',
+        'X-Amz-Date',
+        'Authorization',
+        'X-Api-Key',
+        'X-Amz-Security-Token',
+      ],
+    },
+
+    deployOptions: {
+      stageName: this.config.stage,
+      loggingLevel: apigateway.MethodLoggingLevel.INFO,
+      dataTraceEnabled: true,
+      metricsEnabled: true,
+      accessLogDestination: new apigateway.LogGroupLogDestination(logGroup),
+      accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
+        caller: true,
+        httpMethod: true,
+        ip: true,
+        protocol: true,
+        requestTime: true,
+        resourcePath: true,
+        responseLength: true,
+        status: true,
+        user: true,
+      }),
+    },
+
+    endpointConfiguration: {
+      types: [apigateway.EndpointType.REGIONAL],
+    },
+
+    cloudWatchRole: true, // allow API Gateway to push logs
+  });
+
+  return api;
+}
+
+
 
   private createAuthorizer(): apigateway.CognitoUserPoolsAuthorizer {
     // Import User Pool ARN and get reference
@@ -102,6 +131,19 @@ export class ApiGatewayStack extends BaseStack {
       }
     );
 
+    new lambda.CfnPermission(this, 'InvokeGetCompanyPermission', {
+      action: 'lambda:InvokeFunction',
+      functionName: getCompanyArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/company',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
     companyResource.addMethod('PUT', 
       new apigateway.LambdaIntegration(updateCompanyFunction, {
         proxy: true,
@@ -115,6 +157,19 @@ export class ApiGatewayStack extends BaseStack {
         },
       }
     );
+
+    new lambda.CfnPermission(this, 'InvokePutCompanyPermission', {
+      action: 'lambda:InvokeFunction',
+      functionName: updateCompanyArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/PUT/company',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
 
     // Device Management endpoints - EXACT match to production structure
     const deviceManagementResource = this.api.root.addResource('device-management');
@@ -136,6 +191,19 @@ export class ApiGatewayStack extends BaseStack {
       }
     );
 
+    new lambda.CfnPermission(this, 'InvokePostProvisioningClaims', {
+      action: 'lambda:InvokeFunction',
+      functionName: createProvisioningClaimArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/device-management/provisioning-claims',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
     // Things endpoints - EXACT match to production
     const thingsResource = this.api.root.addResource('things');
     
@@ -149,6 +217,20 @@ export class ApiGatewayStack extends BaseStack {
       }
     );
 
+    new lambda.CfnPermission(this, 'InvokeGetThings', {
+      action: 'lambda:InvokeFunction',
+      functionName: getThingsByCompanyArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
+
     // Things with thingName parameter - EXACT match to production
     const thingNameResource = thingsResource.addResource('{thingName}');
     
@@ -161,6 +243,19 @@ export class ApiGatewayStack extends BaseStack {
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
+
+    new lambda.CfnPermission(this, 'InvokeGetThingByName', {
+      action: 'lambda:InvokeFunction',
+      functionName: checkThingExistsArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things/{thingName}',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
 
     // User Policy endpoint - EXACT match to production
     const userPolicyResource = this.api.root.addResource('user-policy');
@@ -179,6 +274,19 @@ export class ApiGatewayStack extends BaseStack {
       }
     );
 
+    new lambda.CfnPermission(this, 'InvokePostUserPolicy', {
+      action: 'lambda:InvokeFunction',
+      functionName: attachIoTPolicyArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/user-policy',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
     // User management endpoints
     const userResource = this.api.root.addResource('user');
     
@@ -191,6 +299,20 @@ export class ApiGatewayStack extends BaseStack {
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
+
+    new lambda.CfnPermission(this, 'InvokeDeleteUser', {
+      action: 'lambda:InvokeFunction',
+      functionName: deleteUserLambdaArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/DELETE/user',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
   }
 
   private createOutputs(): void {
@@ -213,4 +335,5 @@ export class ApiGatewayStack extends BaseStack {
       description: 'AWS Region for Angular app',
     });
   }
+
 }
