@@ -10,7 +10,6 @@ interface CreateLambdaProps {
   functionName: string;
   assetPath: string;
   environment?: { [key: string]: string };
-  useLayer?: boolean;
   sharedLayer?: lambda.ILayerVersion;
   config: {
     lambda: {
@@ -21,6 +20,13 @@ interface CreateLambdaProps {
 }
 
 export function createLambdaFunction(props: CreateLambdaProps): lambda.Function {
+
+  const logGroup = new logs.LogGroup(props.scope, `${props.functionName}LogGroup`, {
+    logGroupName: `/aws/lambda/${props.functionName}`,
+    retention: logs.RetentionDays.ONE_DAY,
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+  });
+
   const func = new lambda.Function(props.scope, props.id, {
     functionName: props.functionName,
     runtime: lambda.Runtime.NODEJS_22_X,
@@ -40,17 +46,11 @@ export function createLambdaFunction(props: CreateLambdaProps): lambda.Function 
         'node_modules'
       ],
     }),
-    layers: props.useLayer && props.sharedLayer ? [props.sharedLayer] : undefined,
+    layers: props.sharedLayer ? [props.sharedLayer] : undefined,
     environment: props.environment ?? {},
     timeout: cdk.Duration.seconds(props.config.lambda.timeout),
     memorySize: props.config.lambda.memorySize,
-    logRetention: logs.RetentionDays.ONE_DAY,
-  });
-
-  new logs.LogGroup(props.scope, `${props.functionName}LogGroup`, {
-    logGroupName: `/aws/lambda/${func.functionName}`,
-    retention: logs.RetentionDays.ONE_DAY,
-    removalPolicy: cdk.RemovalPolicy.DESTROY,
+    logGroup
   });
 
   func.role?.addManagedPolicy(
@@ -64,13 +64,43 @@ export function createLambdaFunction(props: CreateLambdaProps): lambda.Function 
 
 /* USAGE:
 
-import { createLambdaFunction } from './lambda-utils';
+// lambda-stack.ts
+import { createLambdaFunction } from '../utils/create-lambda';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { Stack, StackProps } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
-const fn = createLambdaFunction(this, {
-  id: 'MyFunction',
-  codePath: 'src/my-function',
-  handler: 'index.handler',
-  layers: [sharedLayer],
-});
+export class LambdaStack extends Stack {
+  public readonly sharedLayer: lambda.LayerVersion;
+
+  constructor(scope: Construct, id: string, props: StackProps) {
+    super(scope, id, props);
+
+    this.sharedLayer = new lambda.LayerVersion(this, 'SharedLayer', {
+      layerVersionName: 'shared-layer',
+      code: lambda.Code.fromAsset('./lambda/lambdaLayer'),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
+
+    const myLambda = createLambdaFunction({
+      scope: this,
+      id: 'MyFunction',
+      functionName: 'myFunction',
+      assetPath: './lambda/myFunctionLambda',
+      environment: { HELLO: 'world' },
+      useLayer: true,
+      sharedLayer: this.sharedLayer,
+      config,
+    });
+  }
+}
 
 */

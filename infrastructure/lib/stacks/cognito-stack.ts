@@ -2,18 +2,27 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
+import { createLambdaFunction } from './lambda-utils';
+
+export interface CognitoStackProps extends BaseStackProps {
+    sharedLayer: lambda.LayerVersion;
+}
 
 export class CognitoStack extends BaseStack {
+
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
   public readonly identityPool: cognito.CfnIdentityPool;
+  private readonly sharedLayer: lambda.LayerVersion;
 
-  constructor(scope: Construct, id: string, props: BaseStackProps) {
+  constructor(scope: Construct, id: string, props: CognitoStackProps) {
     super(scope, id, props);
 
-    this.userPool = this.createUserPool();
+    this.sharedLayer = props.sharedLayer;
+    this.userPool = this.createUserPoolWithTriggers();
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
     
@@ -23,9 +32,68 @@ export class CognitoStack extends BaseStack {
     this.applyStandardTags(this);
   }
 
-  private createUserPool(): cognito.UserPool {
+  private createUserPoolWithTriggers(): cognito.UserPool {
+
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
+    
+    const postConfirmationLambda = createLambdaFunction({
+      scope: this,
+      id: 'PostConfirmationLambdaFunction',
+      functionName: 'postConfirmationLambda',
+      assetPath: './lambda/postConfirmationLambda',
+      environment: { COMPANIES_TABLE: 'companies' },
+      sharedLayer: this.sharedLayer,
+      config
+    });
+
+    postConfirmationLambda.role?.attachInlinePolicy(
+      new iam.Policy(this, 'postConfirmationLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'dynamodb:PutItem',
+              'dynamodb:UpdateItem',
+              'dynamodb:DeleteItem',
+              'dynamodb:GetItem'
+            ],
+            resources: [
+              `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'cognito-idp:AdminUpdateUserAttributes',
+              'cognito-idp:CreateGroup',
+              'cognito-idp:AdminAddUserToGroup'
+            ],
+            resources: [
+              `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
+            ],
+          })
+        ]
+      })
+    );
+
+    postConfirmationLambda.addPermission('AllowCognitoInvoke', {
+      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceArn: `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`,
+    });
+
     return new cognito.UserPool(this, 'UserPool', {
+
       userPoolName: this.config.cognito.userPoolName,
+
+      lambdaTriggers: {
+        postConfirmation: postConfirmationLambda,
+      },
       
       // Sign-in configuration - ONLY email, no username
       signInAliases: {
@@ -127,6 +195,7 @@ export class CognitoStack extends BaseStack {
   }
 
   private createUserPoolClient(): cognito.UserPoolClient {
+
     return new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool: this.userPool,
       userPoolClientName: `${this.config.projectName}-client`,

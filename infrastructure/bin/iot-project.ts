@@ -11,6 +11,7 @@ import { IoTStack } from '../lib/stacks/iot-stack';
 import { TriggersStack } from '../lib/stacks/triggers-stack';
 import { ApiGatewayStack } from '../lib/stacks/api-gateway-stack';
 import { ConfigOutputStack } from '../lib/stacks/config-output-stack';
+import { SharedInfraStack } from '../lib/stacks/shared-infra-stack';
 
 const app = new cdk.App();
 
@@ -32,6 +33,11 @@ const museumAlertIamStack = new IamStack(app, `${config.projectName}-iam-${confi
   config,
 });
 
+const museumAlertSharedInfraStack = new SharedInfraStack(app, `${config.projectName}-shared-infra-${config.stage}`, {
+  ...stackProps,
+  config,
+});
+
 const museumAlertDatabaseStack = new DatabaseStack(app, `${config.projectName}-database-${config.stage}`, {
   ...stackProps,
   config,
@@ -43,12 +49,14 @@ const museumAlertDatabaseStack = new DatabaseStack(app, `${config.projectName}-d
 // PHASE 2: Cognito stack (completely independent - exports values)
 const museumAlertCognitoStack = new CognitoStack(app, `${config.projectName}-cognito-${config.stage}`, {
   ...stackProps,
+  sharedLayer: museumAlertSharedInfraStack.sharedLayer,
   config,
 });
 
 // PHASE 3: Lambda stack (completely independent - imports values via CloudFormation)
 const museumAlertLambdaStack = new LambdaStack(app, `${config.projectName}-lambda-${config.stage}`, {
   ...stackProps,
+  sharedLayer: museumAlertSharedInfraStack.sharedLayer,
   config,
   // NO direct construct references - Lambda will import these via Fn.importValue
 });
@@ -92,10 +100,12 @@ const museumAlertConfigStack = new ConfigOutputStack(app, `${config.projectName}
 // DEPENDENCY CHAIN - ONLY EXPLICIT DEPENDENCIES, NO CIRCULAR REFERENCES
 // Foundation dependencies
 museumAlertDatabaseStack.addDependency(museumAlertIamStack);
+museumAlertLambdaStack.addDependency(museumAlertSharedInfraStack);
 museumAlertLambdaStack.addDependency(museumAlertIamStack);
+museumAlertLambdaStack.addDependency(museumAlertCognitoStack);
 
 // TO DO: remove after testing
-museumAlertCognitoStack.addDependency(museumAlertLambdaStack);
+museumAlertCognitoStack.addDependency(museumAlertSharedInfraStack);
 
 // Wiring dependencies (after both base stacks exist)
 //museumAlertCognitoWiringStack.addDependency(museumAlertCognitoStack);

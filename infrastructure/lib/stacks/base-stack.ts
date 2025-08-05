@@ -1,5 +1,6 @@
 // lib/stacks/base-stack.ts
 import * as cdk from 'aws-cdk-lib';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { EnvironmentConfig } from '../../config/types';
 

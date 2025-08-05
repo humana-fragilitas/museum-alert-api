@@ -5,122 +5,50 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { BaseStack, BaseStackProps } from './base-stack';
+import { createLambdaFunction } from './lambda-utils';
 
 export interface LambdaStackProps extends BaseStackProps {
-  // NO construct references - completely independent
+    sharedLayer: lambda.LayerVersion;
 }
 
 export class LambdaStack extends BaseStack {
+
   public readonly functions: { [key: string]: lambda.Function } = {};
-  public readonly sharedLayer: lambda.LayerVersion;
+  private readonly sharedLayer: lambda.LayerVersion;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
+
     super(scope, id, props);
 
-    // Create the shared layer FIRST
-    this.sharedLayer = this.createSharedLayer();
-
-    // Create Lambda functions using CloudFormation imports for Cognito values
+    this.sharedLayer = props.sharedLayer;
     this.createCompanyFunctions();
     this.createIoTFunctions();
     this.createCognitoFunctions();
     this.createDeviceManagementFunctions();
     
-    // Export Lambda function ARNs for other stacks to import
     this.createOutputs();
-    
     this.applyStandardTags(this);
-  }
 
-  private createSharedLayer(): lambda.LayerVersion {
-    return new lambda.LayerVersion(this, 'SharedLayer', {
-      layerVersionName: `${this.config.projectName}-shared-layer-${this.config.stage}`,
-      code: lambda.Code.fromAsset('./lambda/lambdaLayer', {
-        bundling: {
-          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
-          command: [
-            'bash', '-c', [
-              'cp -r /asset-input/* /asset-output/',
-              'cd /asset-output/nodejs',
-              'npm install --only=production',
-            ].join(' && ')
-          ],
-        },
-        exclude: [
-          'node_modules',
-          'cdk.out',
-          '.git',
-          '*.log',
-          '.DS_Store',
-          'libraries',
-        ],
-      }),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
-      description: 'Shared utilities for Museum Alert Lambda functions',
-      removalPolicy: this.config.stage === 'prod' 
-        ? cdk.RemovalPolicy.RETAIN 
-        : cdk.RemovalPolicy.DESTROY,
-    });
-  }
-
-  private createLambdaFunction(
-    id: string, 
-    functionName: string, 
-    assetPath: string, 
-    environment: { [key: string]: string } = {},
-    useLayer: boolean = true
-  ): lambda.Function {
-    const func = new lambda.Function(this, id, {
-      functionName,
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(assetPath, {
-        exclude: [
-          'cdk.out',
-          '.git',
-          '*.log',
-          '.DS_Store',
-          'libraries',
-          '*.zip',
-          'test',
-          'tests',
-          '__pycache__',
-          '.env',
-          'node_modules'
-        ],
-      }),
-      layers: useLayer ? [this.sharedLayer] : undefined,
-      environment,
-      timeout: cdk.Duration.seconds(this.config.lambda.timeout),
-      memorySize: this.config.lambda.memorySize,
-      logRetention: logs.RetentionDays.ONE_DAY
-    });
-
-    // 📝 Create log group separately
-    new logs.LogGroup(this, `${functionName}LogGroup`, {
-      logGroupName: `/aws/lambda/${func.functionName}`,
-      retention: logs.RetentionDays.ONE_DAY,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    // CRITICAL: Add basic CloudWatch logging permissions to ALL Lambda functions
-    func.role?.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-    );
-
-    return func;
   }
 
   private createCompanyFunctions(): void {
-    // getCompany function
-    this.functions.getCompany = this.createLambdaFunction(
-      'GetCompanyFunction',
-      'getCompany',
-      './lambda/getCompanyLambda',
-      {
-        COMPANIES_TABLE: 'companies',
-      }
-    );
+
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
+
+    this.functions.getCompany = createLambdaFunction({
+      scope: this,
+      id: 'GetCompanyFunction',
+      functionName: 'getCompany',
+      assetPath: './lambda/getCompanyLambda',
+      environment: { COMPANIES_TABLE: 'companies' },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.getCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'getCompanyLambdaPolicy', {
@@ -135,15 +63,15 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    // updateCompany function
-    this.functions.updateCompany = this.createLambdaFunction(
-      'UpdateCompanyFunction',
-      'updateCompany',
-      './lambda/updateCompanyLambda',
-      {
-        COMPANIES_TABLE: 'companies',
-      }
-    );
+    this.functions.updateCompany = createLambdaFunction({
+      scope: this,
+      id: 'UpdateCompanyFunction',
+      functionName: 'updateCompany',
+      assetPath: './lambda/updateCompanyLambda',
+      environment: { COMPANIES_TABLE: 'companies' },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.updateCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'updateCompanyLambdaPolicy', {
@@ -160,18 +88,26 @@ export class LambdaStack extends BaseStack {
   }
 
   private createIoTFunctions(): void {
+
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
+
     // Import Identity Pool ID from Cognito stack (NO direct reference)
     const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
 
-    // attachIoTPolicy function
-    this.functions.attachIoTPolicy = this.createLambdaFunction(
-      'AttachIoTPolicyFunction',
-      'attachIoTPolicy',
-      './lambda/attachIoTPolicyLambda',
-      {
-        IDENTITY_POOL_ID: identityPoolId, // OK
-      }
-    );
+    this.functions.attachIoTPolicy = createLambdaFunction({
+      scope: this,
+      id: 'AttachIoTPolicyFunction',
+      functionName: 'attachIoTPolicy',
+      assetPath: './lambda/attachIoTPolicyLambda',
+      environment: { IDENTITY_POOL_ID: identityPoolId },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.attachIoTPolicy.role?.attachInlinePolicy(
       new iam.Policy(this, 'attachIoTPolicyLambdaPolicy', {
@@ -206,14 +142,13 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    // addThingToGroup function
-    this.functions.addThingToGroup = this.createLambdaFunction(
-      'AddThingToGroupFunction',
-      'addThingToGroup',
-      './lambda/addThingToGroupLambda',
-      {},
-      false
-    );
+    this.functions.addThingToGroup = createLambdaFunction({
+      scope: this,
+      id: 'AddThingToGroupFunction',
+      functionName: 'addThingToGroup',
+      assetPath: './lambda/addThingToGroupLambda',
+      config
+    });
 
     this.functions.addThingToGroup.role?.attachInlinePolicy(
       new iam.Policy(this, 'addThingToGroupLambdaPolicy', {
@@ -242,12 +177,13 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    // republishDeviceConnectionStatus function
-    this.functions.republishDeviceConnectionStatus = this.createLambdaFunction(
-      'RepublishDeviceConnectionStatusFunction',
-      'republishDeviceConnectionStatus',
-      './lambda/republishDeviceConnectionStatusLambda'
-    );
+    this.functions.republishDeviceConnectionStatus = createLambdaFunction({
+      scope: this,
+      id: 'RepublishDeviceConnectionStatusFunction',
+      functionName: 'republishDeviceConnectionStatus',
+      assetPath: './lambda/republishDeviceConnectionStatusLambda',
+      config
+    });
     
     this.functions.republishDeviceConnectionStatus.role?.attachInlinePolicy(
       new iam.Policy(this, 'republishDeviceConnectionStatusLambdaPolicy', {
@@ -271,15 +207,15 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    // createProvisioningClaim function
-    this.functions.createProvisioningClaim = this.createLambdaFunction(
-      'CreateProvisioningClaimFunction',
-      'createProvisioningClaim',
-      './lambda/createProvisioningClaimLambda',
-      {
-        TEMPLATE_NAME: this.config.iot.provisioningTemplateName
-      }
-    );
+    this.functions.createProvisioningClaim = createLambdaFunction({
+      scope: this,
+      id: 'CreateProvisioningClaimFunction',
+      functionName: 'createProvisioningClaim',
+      assetPath: './lambda/createProvisioningClaimLambda',
+      environment: { TEMPLATE_NAME: this.config.iot.provisioningTemplateName },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.createProvisioningClaim.role?.attachInlinePolicy(
       new iam.Policy(this, 'createProvisioningClaimLambdaPolicy', {
@@ -298,73 +234,91 @@ export class LambdaStack extends BaseStack {
 
   private createCognitoFunctions(): void {
 
-    this.functions.postConfirmationLambda = this.createLambdaFunction(
-      'PostConfirmationLambdaFunction',
-      'postConfirmationLambda',
-      './lambda/postConfirmationLambda',
-      {
-        COMPANIES_TABLE: 'companies',
-      }
-    );
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
 
-    this.functions.postConfirmationLambda.role?.attachInlinePolicy(
-      new iam.Policy(this, 'postConfirmationLambdaPolicy', {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'dynamodb:PutItem',
-              'dynamodb:UpdateItem',
-              'dynamodb:DeleteItem',
-              'dynamodb:GetItem'
-            ],
-            resources: [
-              `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
-            ],
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'cognito-idp:AdminUpdateUserAttributes',
-              'cognito-idp:CreateGroup',
-              'cognito-idp:AdminAddUserToGroup'
-            ],
-            resources: [
-              `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
-            ],
-          })
-        ]
-      })
-    );
+    // // TO DO: this has been moved to Cognito stack: remove it!
+    // this.functions.postConfirmationLambda = createLambdaFunction({
+    //   scope: this,
+    //   id: 'PostConfirmationLambdaFunction',
+    //   functionName: 'postConfirmationLambda',
+    //   assetPath: './lambda/postConfirmationLambda',
+    //   environment: { COMPANIES_TABLE: 'companies' },
+    //   config
+    // });
 
-    this.functions.postConfirmationLambda.addPermission('AllowCognitoInvoke', {
-      principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
-      action: 'lambda:InvokeFunction',
-      sourceArn: `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`,
+    // this.functions.postConfirmationLambda.role?.attachInlinePolicy(
+    //   new iam.Policy(this, 'postConfirmationLambdaPolicy', {
+    //     statements: [
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'dynamodb:PutItem',
+    //           'dynamodb:UpdateItem',
+    //           'dynamodb:DeleteItem',
+    //           'dynamodb:GetItem'
+    //         ],
+    //         resources: [
+    //           `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
+    //         ],
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'cognito-idp:AdminUpdateUserAttributes',
+    //           'cognito-idp:CreateGroup',
+    //           'cognito-idp:AdminAddUserToGroup'
+    //         ],
+    //         resources: [
+    //           `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
+    //         ],
+    //       })
+    //     ]
+    //   })
+    // );
+
+    // this.functions.postConfirmationLambda.addPermission('AllowCognitoInvoke', {
+    //   principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
+    //   action: 'lambda:InvokeFunction',
+    //   sourceArn: `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`,
+    // });
+
+    // TO DO: this is unused: to be removed!
+    this.functions.deleteUserLambda = createLambdaFunction({
+      scope: this,
+      id: 'DeleteUserLambdaFunction',
+      functionName: 'deleteUserLambda',
+      assetPath: './lambda/deleteUserLambda',
+      config
     });
 
-
-    this.functions.deleteUserLambda = this.createLambdaFunction(
-      'DeleteUserLambdaFunction',
-      'deleteUserLambda',
-      './lambda/deleteUserLambda',
-      {},
-      false
-    );
   }
 
   private createDeviceManagementFunctions(): void {
+
+    const config = {
+      lambda: {
+        timeout: 10,
+        memorySize: 512,
+      },
+    };
+
     // Import User Pool ID (NOT direct reference)
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
 
-    this.functions.getThingsByCompany = this.createLambdaFunction(
-      'GetThingsByCompanyFunction',
-      'getThingsByCompany',
-      './lambda/getThingsByCompanyLambda',
-      {
-        USER_POOL_ID: userPoolId,
-      }
-    );
+    this.functions.getThingsByCompany = createLambdaFunction({
+      scope: this,
+      id: 'GetThingsByCompanyFunction',
+      functionName: 'getThingsByCompany',
+      assetPath: './lambda/getThingsByCompanyLambda',
+      environment: { USER_POOL_ID: userPoolId },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.getThingsByCompany.role?.attachInlinePolicy(
       new iam.Policy(this, 'getThingsByCompanyLambdaPolicy', {
@@ -380,14 +334,15 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    this.functions.preProvisioningHook = this.createLambdaFunction(
-      'PreProvisioningHookFunction',
-      'preProvisioningHook',
-      './lambda/preProvisioningHookLambda',
-      {
-        USER_POOL_ID: userPoolId,
-      }
-    );
+    this.functions.preProvisioningHook = createLambdaFunction({
+      scope: this,
+      id: 'PreProvisioningHookFunction',
+      functionName: 'preProvisioningHook',
+      assetPath: './lambda/preProvisioningHookLambda',
+      environment: { USER_POOL_ID: userPoolId },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.preProvisioningHook.role?.attachInlinePolicy(
       new iam.Policy(this, 'preProvisioningHookLambdaPolicy', {
@@ -404,14 +359,15 @@ export class LambdaStack extends BaseStack {
       })
     );
 
-    this.functions.checkThingExists = this.createLambdaFunction(
-      'CheckThingExistsFunction',
-      'checkThingExists',
-      './lambda/checkThingExistsLambda',
-      {
-        USER_POOL_ID: userPoolId,
-      }
-    );
+    this.functions.checkThingExists = createLambdaFunction({
+      scope: this,
+      id: 'CheckThingExistsFunction',
+      functionName: 'checkThingExists',
+      assetPath: './lambda/checkThingExistsLambda',
+      environment: { USER_POOL_ID: userPoolId },
+      sharedLayer: this.sharedLayer,
+      config
+    });
 
     this.functions.checkThingExists.role?.attachInlinePolicy(
       new iam.Policy(this, 'checkThingExistsLambdaPolicy', {
