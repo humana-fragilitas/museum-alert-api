@@ -34,7 +34,8 @@ export class TriggersStack extends BaseStack {
       ruleName: `${this.config.projectName.replace('-', '')}_republish_connection_status_${this.config.stage}`,
       topicRulePayload: {
         description: 'Republish device connection status events',
-        sql: "SELECT * FROM '$aws/events/presence/connected/+' WHERE startswith(clientId, 'MAS-')",
+        sql: "SELECT * FROM '$aws/events/presence/+/+' WHERE startswith(clientid(), 'MAS-')",
+        awsIotSqlVersion: '2016-03-23',
         actions: [
           {
             lambda: {
