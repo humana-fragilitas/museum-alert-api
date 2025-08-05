@@ -21,12 +21,22 @@ export class TriggersStack extends BaseStack {
     const addThingArn = cdk.Fn.importValue(`${this.config.projectName}-addthingtogroup-arn-${this.config.stage}`);
 
     // Get Lambda functions by ARN for permissions
-    const republishFunction = lambda.Function.fromFunctionArn(
-      this, 'ImportedRepublishFunction', republishArn
+    const republishFunction = lambda.Function.fromFunctionAttributes(
+      this, 
+      'ImportedRepublishFunction', 
+      {
+        functionArn: republishArn,
+        sameEnvironment: true,
+      }
     );
     
-    const addThingFunction = lambda.Function.fromFunctionArn(
-      this, 'ImportedAddThingFunction', addThingArn
+    const addThingFunction = lambda.Function.fromFunctionAttributes(
+      this, 
+      'ImportedAddThingFunction', 
+      {
+        functionArn: addThingArn,
+        sameEnvironment: true,
+      }
     );
 
     // Rule for device connection status
@@ -119,8 +129,10 @@ export class TriggersStack extends BaseStack {
     });
 
     // Grant permissions for IoT to invoke Lambda functions
-    republishFunction.addPermission('IoTTopicRulePermission', {
-      principal: new iam.ServicePrincipal('iot.amazonaws.com'),
+    new lambda.CfnPermission(this, 'AllowIoTInvokeRepublishLambda', {
+      action: 'lambda:InvokeFunction',
+      principal: 'iot.amazonaws.com',
+      functionName: republishArn,
       sourceArn: connectionStatusRule.attrArn,
     });
 

@@ -35,7 +35,10 @@ export class ConfigOutputStack extends BaseStack {
       policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: customResources.AwsCustomResourcePolicy.ANY_RESOURCE,
       }),
-      logRetention: logs.RetentionDays.THREE_DAYS,
+      logGroup: new logs.LogGroup(this, 'IoTEndpointProviderLogGroup', {
+        retention: logs.RetentionDays.ONE_DAY,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      })
     });
 
     const iotEndpoint = iotEndpointProvider.getResponseField('endpointAddress');
@@ -104,7 +107,7 @@ export class ConfigOutputStack extends BaseStack {
           }
         };`,
       { 
-        apiUrl: apiUrl,
+        apiUrl: apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl,
         userPoolId: userPoolId,
         userPoolClientId: userPoolClientId,
         identityPoolId: identityPoolId,

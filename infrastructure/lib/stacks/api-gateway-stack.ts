@@ -110,13 +110,40 @@ private createRestApi(): apigateway.RestApi {
     const deleteUserLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-deleteuserlambda-arn-${this.config.stage}`);
 
     // Get Lambda function references
-    const getCompanyFunction = lambda.Function.fromFunctionArn(this, 'ImportedGetCompany', getCompanyArn);
-    const updateCompanyFunction = lambda.Function.fromFunctionArn(this, 'ImportedUpdateCompany', updateCompanyArn);
-    const createProvisioningClaimFunction = lambda.Function.fromFunctionArn(this, 'ImportedCreateProvisioningClaim', createProvisioningClaimArn);
-    const getThingsByCompanyFunction = lambda.Function.fromFunctionArn(this, 'ImportedGetThingsByCompany', getThingsByCompanyArn);
-    const checkThingExistsFunction = lambda.Function.fromFunctionArn(this, 'ImportedCheckThingExists', checkThingExistsArn);
-    const attachIoTPolicyFunction = lambda.Function.fromFunctionArn(this, 'ImportedAttachIoTPolicy', attachIoTPolicyArn);
-    const deleteUserLambdaFunction = lambda.Function.fromFunctionArn(this, 'ImportedDeleteUserLambda', deleteUserLambdaArn);
+    const getCompanyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedGetCompany', {
+      functionArn: getCompanyArn,
+      sameEnvironment: true,
+    });
+
+    const updateCompanyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedUpdateCompany', {
+      functionArn: updateCompanyArn,
+      sameEnvironment: true,
+    });
+
+    const createProvisioningClaimFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedCreateProvisioningClaim', {
+      functionArn: createProvisioningClaimArn,
+      sameEnvironment: true,
+    });
+
+    const getThingsByCompanyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedGetThingsByCompany', {
+      functionArn: getThingsByCompanyArn,
+      sameEnvironment: true,
+    });
+
+    const checkThingExistsFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedCheckThingExists', {
+      functionArn: checkThingExistsArn,
+      sameEnvironment: true,
+    });
+
+    const attachIoTPolicyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedAttachIoTPolicy', {
+      functionArn: attachIoTPolicyArn,
+      sameEnvironment: true,
+    });
+
+    const deleteUserLambdaFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedDeleteUserLambda', {
+      functionArn: deleteUserLambdaArn,
+      sameEnvironment: true,
+    });
 
     // Company endpoints - EXACT match to production
     const companyResource = this.api.root.addResource('company');

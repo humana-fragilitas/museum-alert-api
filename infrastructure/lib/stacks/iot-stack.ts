@@ -147,10 +147,13 @@ export class IoTStack extends BaseStack {
     });
 
     // Get Lambda function reference for permissions
-    const preProvisioningHookFunction = lambda.Function.fromFunctionArn(
+    const preProvisioningHookFunction = lambda.Function.fromFunctionAttributes(
       this, 
       'ImportedPreProvisioningHook', 
-      preProvisioningHookArn
+      {
+        functionArn: preProvisioningHookArn,
+        sameEnvironment: true,
+      }
     );
 
     const template = new iot.CfnProvisioningTemplate(this, 'ProvisioningTemplate', {
@@ -259,7 +262,10 @@ export class IoTStack extends BaseStack {
       policy: customResources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [preProvisioningHookArn],
       }),
-      logRetention: logs.RetentionDays.THREE_DAYS,
+      logGroup: new logs.LogGroup(this, 'AddLambdaPermissionLogGroup', {
+        retention: logs.RetentionDays.ONE_DAY,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      })
     });
 
     // Ensure the permission is added before creating the provisioning template
