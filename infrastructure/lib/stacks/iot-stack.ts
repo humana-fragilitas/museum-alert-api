@@ -1,30 +1,30 @@
-// lib/stacks/iot-stack.ts - IMPORTS VERSION
+import { Construct } from 'constructs';
+
 import * as iot from 'aws-cdk-lib/aws-iot';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cdk from 'aws-cdk-lib';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as customResources from 'aws-cdk-lib/custom-resources';
-import { Construct } from 'constructs';
+
 import { BaseStack, BaseStackProps } from './base-stack';
+
 
 export interface IoTStackProps extends BaseStackProps {
   iamRoles: { [key: string]: iam.Role };
-  // NO direct Lambda reference - will import via CloudFormation
 }
 
 export class IoTStack extends BaseStack {
+
   public readonly thingType: iot.CfnThingType;
   public readonly provisioningTemplate: iot.CfnProvisioningTemplate;
   public readonly policies: { [key: string]: iot.CfnPolicy } = {};
 
   constructor(scope: Construct, id: string, props: IoTStackProps) {
     super(scope, id, props);
-
     this.thingType = this.createThingType();
     this.createIoTPolicies();
     this.provisioningTemplate = this.createProvisioningTemplate();
-    
     this.applyStandardTags(this);
   }
 
@@ -39,7 +39,7 @@ export class IoTStack extends BaseStack {
   }
 
   private createIoTPolicies(): void {
-    // Get the account ID dynamically
+
     const accountId = cdk.Stack.of(this).account;
 
     // Device policy for sensors
@@ -106,28 +106,25 @@ export class IoTStack extends BaseStack {
         ],
       },
     });
+
   }
 
   private createProvisioningTemplate(): iot.CfnProvisioningTemplate {
-    // Get the account ID dynamically
+
     const accountId = cdk.Stack.of(this).account;
 
-    // Import pre-provisioning hook Lambda ARN from Lambda stack
     const preProvisioningHookArn = cdk.Fn.importValue(`${this.config.projectName}-preprovisioninghook-arn-${this.config.stage}`);
 
-    // Create role for provisioning template with EXACT production configuration
     const provisioningRole = new iam.Role(this, 'ProvisioningRole', {
       roleName: this.createResourceName('role', 'provisioning'),
       assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
       
-      // Add the EXACT managed policies from production
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTThingsRegistration'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
       ],
       
-      // Add the EXACT inline policy from production
       inlinePolicies: {
         'provisioning-policy': new iam.PolicyDocument({
           statements: [
@@ -143,10 +140,9 @@ export class IoTStack extends BaseStack {
             }),
           ],
         }),
-      },
+      }
     });
 
-    // Get Lambda function reference for permissions
     const preProvisioningHookFunction = lambda.Function.fromFunctionAttributes(
       this, 
       'ImportedPreProvisioningHook', 
@@ -162,13 +158,11 @@ export class IoTStack extends BaseStack {
       enabled: true,
       provisioningRoleArn: provisioningRole.roleArn,
       
-      // Add pre-provisioning hook with imported ARN
       preProvisioningHook: {
         targetArn: preProvisioningHookArn,
         payloadVersion: '2020-04-01',
       },
       
-      // EXACT COPY of your production template
       templateBody: JSON.stringify({
         Parameters: {
           ThingName: { Type: 'String' },
@@ -221,8 +215,10 @@ export class IoTStack extends BaseStack {
       }),
     });
 
-    // Grant IoT permission to invoke the pre-provisioning hook
-    // Since we're using an imported function, we need to use a custom resource to add the permission
+    /**
+     * Grants IoT permission to invoke the pre-provisioning hook; since we're using an imported function,
+     * we need to use a custom resource to add the permission
+     */
     const addLambdaPermission = new customResources.AwsCustomResource(this, 'AddLambdaPermission', {
       onCreate: {
         service: 'Lambda',
@@ -268,9 +264,11 @@ export class IoTStack extends BaseStack {
       })
     });
 
-    // Ensure the permission is added before creating the provisioning template
+    // Ensures the permission is added before creating the provisioning template
     template.node.addDependency(addLambdaPermission);
 
     return template;
+
   }
+
 }

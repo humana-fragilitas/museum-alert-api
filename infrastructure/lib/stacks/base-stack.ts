@@ -1,14 +1,16 @@
-// lib/stacks/base-stack.ts
-import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
+
+import * as cdk from 'aws-cdk-lib';
+
 import { EnvironmentConfig } from '../../config/types';
+
 
 export interface BaseStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
 }
 
 export abstract class BaseStack extends cdk.Stack {
+  
   protected readonly config: EnvironmentConfig;
 
   constructor(scope: Construct, id: string, props: BaseStackProps) {
@@ -17,14 +19,14 @@ export abstract class BaseStack extends cdk.Stack {
   }
 
   /**
-   * Create a standardized resource name
+   * Creates a standardized resource name
    */
   protected createResourceName(resourceType: string, resourceName: string): string {
     return `${this.config.projectName}-${resourceType}-${resourceName}-${this.config.stage}`;
   }
 
   /**
-   * Create standardized tags for all resources
+   * Creates standardized tags for all resources
    */
   protected getStandardTags(): { [key: string]: string } {
     return {
@@ -36,7 +38,7 @@ export abstract class BaseStack extends cdk.Stack {
   }
 
   /**
-   * Apply standard tags to a construct
+   * Applies standard tags to a construct
    */
   protected applyStandardTags(construct: Construct): void {
     const tags = this.getStandardTags();
@@ -44,4 +46,5 @@ export abstract class BaseStack extends cdk.Stack {
       cdk.Tags.of(construct).add(key, value);
     });
   }
+
 }

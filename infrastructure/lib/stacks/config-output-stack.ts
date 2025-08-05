@@ -1,27 +1,28 @@
-// lib/stacks/config-output-stack.ts - IMPORTS VERSION
+import { Construct } from 'constructs';
+
 import * as cdk from 'aws-cdk-lib';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { Construct } from 'constructs';
-import { BaseStack, BaseStackProps } from './base-stack';
 import * as customResources from 'aws-cdk-lib/custom-resources';
 
+import { BaseStack, BaseStackProps } from './base-stack';
+
+
 export class ConfigOutputStack extends BaseStack {
+
   constructor(scope: Construct, id: string, props: BaseStackProps) {
     super(scope, id, props);
-
-    this.createAngularConfig();
-    
+    this.createAngulaAppConfig();
     this.applyStandardTags(this);
   }
 
-  private createAngularConfig(): void {
-    // Import values from other stacks via CloudFormation
+  private createAngulaAppConfig(): void {
+
     const apiUrl = cdk.Fn.importValue(`${this.config.projectName}-api-url-${this.config.stage}`);
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
     const userPoolClientId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-client-id-${this.config.stage}`);
     const identityPoolId = cdk.Fn.importValue(`${this.config.projectName}-identity-pool-id-${this.config.stage}`);
 
-    // DYNAMIC: Get IoT endpoint using custom resource
+    // Retrieves IoT endpoint
     const iotEndpointProvider = new customResources.AwsCustomResource(this, 'IoTEndpointProvider', {
       onUpdate: {
         service: 'IoT',
@@ -113,21 +114,23 @@ export class ConfigOutputStack extends BaseStack {
         identityPoolId: identityPoolId,
         iotEndpoint: iotEndpoint
       }),
-      description: '🚀 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
+      description: '🔧 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
     });
 
     // Arduino sketch configuration template
     new cdk.CfnOutput(this, 'ArduinoSketchConfiguration', {
       value: cdk.Fn.sub(
         `# Replace the corresponding lines in config.h
-          namespace AWS {
-            static constexpr const char* IOT_CORE_ENDPOINT = "\${iotEndpoint}";
-          }`,
-          {
-            iotEndpoint
-          }
-        ),
-        description: '🔧 COPY THIS: Arduino Sketch Configuration (config.h)',
-      });
+        namespace AWS {
+          static constexpr const char* IOT_CORE_ENDPOINT = "\${iotEndpoint}";
+        }`,
+        {
+          iotEndpoint
+        }
+      ),
+      description: '🔧 COPY THIS: Arduino Sketch Configuration (config.h)',
+    });
+
   }
+
 }

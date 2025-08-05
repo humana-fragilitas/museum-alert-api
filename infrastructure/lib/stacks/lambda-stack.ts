@@ -1,11 +1,12 @@
-// lib/stacks/lambda-stack.ts - COMPLETELY DECOUPLED VERSION
+import { Construct } from 'constructs';
+
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import { Construct } from 'constructs';
+
 import { BaseStack, BaseStackProps } from './base-stack';
 import { createLambdaFunction } from './lambda-utils';
+
 
 export interface LambdaStackProps extends BaseStackProps {
     sharedLayer: lambda.LayerVersion;
@@ -13,22 +14,19 @@ export interface LambdaStackProps extends BaseStackProps {
 
 export class LambdaStack extends BaseStack {
 
-  public readonly functions: { [key: string]: lambda.Function } = {};
   private readonly sharedLayer: lambda.LayerVersion;
 
+  public readonly functions: { [key: string]: lambda.Function } = {};
+
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
-
     super(scope, id, props);
-
     this.sharedLayer = props.sharedLayer;
     this.createCompanyFunctions();
     this.createIoTFunctions();
     this.createCognitoFunctions();
     this.createDeviceManagementFunctions();
-    
     this.createOutputs();
     this.applyStandardTags(this);
-
   }
 
   private createCompanyFunctions(): void {
@@ -85,6 +83,7 @@ export class LambdaStack extends BaseStack {
         ]
       })
     );
+
   }
 
   private createIoTFunctions(): void {
@@ -230,6 +229,7 @@ export class LambdaStack extends BaseStack {
         ]
       })
     );
+
   }
 
   private createCognitoFunctions(): void {
@@ -240,52 +240,6 @@ export class LambdaStack extends BaseStack {
         memorySize: 512,
       },
     };
-
-    // // TO DO: this has been moved to Cognito stack: remove it!
-    // this.functions.postConfirmationLambda = createLambdaFunction({
-    //   scope: this,
-    //   id: 'PostConfirmationLambdaFunction',
-    //   functionName: 'postConfirmationLambda',
-    //   assetPath: './lambda/postConfirmationLambda',
-    //   environment: { COMPANIES_TABLE: 'companies' },
-    //   config
-    // });
-
-    // this.functions.postConfirmationLambda.role?.attachInlinePolicy(
-    //   new iam.Policy(this, 'postConfirmationLambdaPolicy', {
-    //     statements: [
-    //       new iam.PolicyStatement({
-    //         effect: iam.Effect.ALLOW,
-    //         actions: [
-    //           'dynamodb:PutItem',
-    //           'dynamodb:UpdateItem',
-    //           'dynamodb:DeleteItem',
-    //           'dynamodb:GetItem'
-    //         ],
-    //         resources: [
-    //           `arn:aws:dynamodb:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:table/companies`
-    //         ],
-    //       }),
-    //       new iam.PolicyStatement({
-    //         effect: iam.Effect.ALLOW,
-    //         actions: [
-    //           'cognito-idp:AdminUpdateUserAttributes',
-    //           'cognito-idp:CreateGroup',
-    //           'cognito-idp:AdminAddUserToGroup'
-    //         ],
-    //         resources: [
-    //           `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`
-    //         ],
-    //       })
-    //     ]
-    //   })
-    // );
-
-    // this.functions.postConfirmationLambda.addPermission('AllowCognitoInvoke', {
-    //   principal: new iam.ServicePrincipal('cognito-idp.amazonaws.com'),
-    //   action: 'lambda:InvokeFunction',
-    //   sourceArn: `arn:aws:cognito-idp:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:userpool/*`,
-    // });
 
     // TO DO: this is unused: to be removed!
     this.functions.deleteUserLambda = createLambdaFunction({
@@ -307,7 +261,6 @@ export class LambdaStack extends BaseStack {
       },
     };
 
-    // Import User Pool ID (NOT direct reference)
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
 
     this.functions.getThingsByCompany = createLambdaFunction({
@@ -380,10 +333,10 @@ export class LambdaStack extends BaseStack {
         ]
       })
     );
+
   }
 
   private createOutputs(): void {
-    // Export ALL Lambda function ARNs for other stacks to import
     Object.entries(this.functions).forEach(([name, func]) => {
       new cdk.CfnOutput(this, `${name}Arn`, {
         value: func.functionArn,
@@ -391,4 +344,5 @@ export class LambdaStack extends BaseStack {
       });
     });
   }
+  
 }

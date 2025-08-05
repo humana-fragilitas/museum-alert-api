@@ -1,26 +1,26 @@
-// lib/stacks/triggers-stack.ts - IMPORTS VERSION
+import { Construct } from 'constructs';
+
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iot from 'aws-cdk-lib/aws-iot';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Construct } from 'constructs';
+
 import { BaseStack, BaseStackProps } from './base-stack';
 
+
 export class TriggersStack extends BaseStack {
+
   constructor(scope: Construct, id: string, props: BaseStackProps) {
     super(scope, id, props);
-
     this.createIoTTopicRules();
-    
     this.applyStandardTags(this);
   }
 
   private createIoTTopicRules(): void {
-    // Import Lambda ARNs from Lambda stack
+
     const republishArn = cdk.Fn.importValue(`${this.config.projectName}-republishdeviceconnectionstatus-arn-${this.config.stage}`);
     const addThingArn = cdk.Fn.importValue(`${this.config.projectName}-addthingtogroup-arn-${this.config.stage}`);
 
-    // Get Lambda functions by ARN for permissions
     const republishFunction = lambda.Function.fromFunctionAttributes(
       this, 
       'ImportedRepublishFunction', 
@@ -39,7 +39,7 @@ export class TriggersStack extends BaseStack {
       }
     );
 
-    // Rule for device connection status
+    // Adds rule to republish devices' connection status to company-specific topics
     const connectionStatusRule = new iot.CfnTopicRule(this, 'DeviceConnectionStatusRule', {
       ruleName: `${this.config.projectName.replace('-', '')}_republish_connection_status_${this.config.stage}`,
       topicRulePayload: {
@@ -57,7 +57,7 @@ export class TriggersStack extends BaseStack {
       },
     });
 
-    // Rule for adding things to groups
+    // Adds rule to automatically assign newly created devices to company-specific groups
     const addToGroupRule = new iot.CfnTopicRule(this, 'AddThingToGroupRule', {
       ruleName: `${this.config.projectName.replace('-', '')}_add_thing_to_group_${this.config.stage}`,
       topicRulePayload: {
@@ -76,16 +76,15 @@ export class TriggersStack extends BaseStack {
 
     // Create execution role for republish rule
     const ruleExecutionRole = new iam.Role(this, 'RuleExecutionRole', {
+
       roleName: this.createResourceName('role', 'rule-execution'),
       assumedBy: new iam.ServicePrincipal('iot.amazonaws.com'),
 
-      // EXACT managed policies for IoT Rule Actions and Logging
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTRuleActions'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSIoTLogging'),
       ],
 
-      // Inline policy with necessary permissions
       inlinePolicies: {
         'iot-rule-action-policy': new iam.PolicyDocument({
           statements: [
@@ -101,7 +100,8 @@ export class TriggersStack extends BaseStack {
             }),
           ],
         }),
-      },
+      }
+
     });
 
     // Forward to company events rule
@@ -146,5 +146,7 @@ export class TriggersStack extends BaseStack {
       value: 'AUTOMATICALLY CONFIGURED VIA IMPORTS',
       description: '✅ IoT Topic Rules configured via CloudFormation imports',
     });
+
   }
+
 }

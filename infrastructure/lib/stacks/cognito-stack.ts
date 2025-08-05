@@ -1,11 +1,13 @@
-// lib/stacks/cognito-stack.ts - EXPORTS ONLY VERSION
+import { Construct } from 'constructs';
+
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { Construct } from 'constructs';
+
 import { BaseStack, BaseStackProps } from './base-stack';
 import { createLambdaFunction } from './lambda-utils';
+
 
 export interface CognitoStackProps extends BaseStackProps {
     sharedLayer: lambda.LayerVersion;
@@ -13,23 +15,22 @@ export interface CognitoStackProps extends BaseStackProps {
 
 export class CognitoStack extends BaseStack {
 
+  private readonly sharedLayer: lambda.LayerVersion;
+
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
   public readonly identityPool: cognito.CfnIdentityPool;
-  private readonly sharedLayer: lambda.LayerVersion;
 
   constructor(scope: Construct, id: string, props: CognitoStackProps) {
+    
     super(scope, id, props);
-
     this.sharedLayer = props.sharedLayer;
     this.userPool = this.createUserPoolWithTriggers();
     this.userPoolClient = this.createUserPoolClient();
     this.identityPool = this.createIdentityPool();
-    
-    // Export values for other stacks to import (NO trigger configuration here)
     this.createOutputs();
-    
     this.applyStandardTags(this);
+
   }
 
   private createUserPoolWithTriggers(): cognito.UserPool {
@@ -95,7 +96,7 @@ export class CognitoStack extends BaseStack {
         postConfirmation: postConfirmationLambda,
       },
       
-      // Sign-in configuration - ONLY email, no username
+      // Sign-in configuration: email only, no username
       signInAliases: {
         email: true,
         username: false,
@@ -104,19 +105,19 @@ export class CognitoStack extends BaseStack {
       // Self sign-up configuration
       selfSignUpEnabled: true,
       
-      // CRITICAL: Enable account verification
+      // Enables account verification
       userVerification: {
         emailSubject: 'Verify your email for Museum Alert',
         emailBody: 'Thank you for signing up to Museum Alert! Your verification code is {####}',
         emailStyle: cognito.VerificationEmailStyle.CODE,
       },
       
-      // CRITICAL: Auto-verify email addresses
+      // Enables auto-verification on email addresses
       autoVerify: {
         email: true,
       },
       
-      // CRITICAL: User invitation settings (if using admin-created users)
+      // User invitation settings (if using admin-created users)
       userInvitation: {
         emailSubject: 'Welcome to Museum Alert',
         emailBody: 'Your username is {username} and temporary password is {####}',
@@ -135,13 +136,13 @@ export class CognitoStack extends BaseStack {
       // MFA disabled for simplicity
       mfa: cognito.Mfa.OFF,
       
-      // Account recovery - EMAIL ONLY (this is important for verification)
+      // Account recovery: email only
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       
-      // Email configuration - CRITICAL: Use Cognito's built-in email
+      // Email configuration: use Cognito's built-in email
       email: cognito.UserPoolEmail.withCognito(),
       
-      // CRITICAL: Enable device tracking for better security
+      // Enables device tracking for better security
       deviceTracking: {
         challengeRequiredOnNewDevice: false,
         deviceOnlyRememberedOnUserPrompt: false,
@@ -192,6 +193,7 @@ export class CognitoStack extends BaseStack {
         ? cdk.RemovalPolicy.RETAIN 
         : cdk.RemovalPolicy.DESTROY,
     });
+
   }
 
   private createUserPoolClient(): cognito.UserPoolClient {
@@ -215,9 +217,11 @@ export class CognitoStack extends BaseStack {
       // Prevent user existence errors
       preventUserExistenceErrors: true,
     });
+
   }
 
   private createIdentityPool(): cognito.CfnIdentityPool {
+
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
       identityPoolName: this.config.cognito.identityPoolName,
       allowUnauthenticatedIdentities: false,
@@ -244,6 +248,10 @@ export class CognitoStack extends BaseStack {
         },
         'sts:AssumeRoleWithWebIdentity'
       ),
+      /**
+       * Note: users are attached an ad personam IoT Core policy upon successful registration and login;
+       * see attachIoTPolicy lambda function for more insight
+       */
       inlinePolicies: {
         IoTPolicy: new iam.PolicyDocument({
           statements: [
@@ -262,7 +270,7 @@ export class CognitoStack extends BaseStack {
       },
     });
 
-    // Attach the role to the identity pool
+    // Attaches role to the identity pool
     new cognito.CfnIdentityPoolRoleAttachment(this, 'IdentityPoolRoleAttachment', {
       identityPoolId: identityPool.ref,
       roles: {
@@ -271,10 +279,11 @@ export class CognitoStack extends BaseStack {
     });
 
     return identityPool;
+
   }
 
   private createOutputs(): void {
-    // Export ALL values for other stacks to import
+
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
       exportName: `${this.config.projectName}-user-pool-id-${this.config.stage}`,
@@ -294,34 +303,7 @@ export class CognitoStack extends BaseStack {
       value: this.identityPool.ref,
       exportName: `${this.config.projectName}-identity-pool-id-${this.config.stage}`,
     });
+
   }
+
 }
-
-/*
-
-Standard Approach: Configure Triggers at UserPool Definition
-Here’s how the CDK expects you to do it:
-
-ts
-const postConfirmationFunction = new lambda.Function(this, 'PostConfirmationFunction', {
-  // your config here
-});
-
-const userPool = new cognito.UserPool(this, 'UserPool', {
-  userPoolName: 'your-pool',
-  lambdaTriggers: {
-    postConfirmation: postConfirmationFunction,
-  },
-  // other config...
-});
-This setup handles:
-
-Permissions (addPermission is internally managed by CDK)
-
-Log group creation
-
-Trigger registration on the pool
-
-And you get full Cognito behavior, including email resends without any hackery or manual updates.
-
-*/

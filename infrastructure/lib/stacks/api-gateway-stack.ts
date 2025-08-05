@@ -1,21 +1,22 @@
-// lib/stacks/api-gateway-stack.ts - IMPORTS VERSION
+import { Construct } from 'constructs';
+
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
-
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { Construct } from 'constructs';
+
 import { BaseStack, BaseStackProps } from './base-stack';
 
+
 export class ApiGatewayStack extends BaseStack {
+
   public readonly api: apigateway.RestApi;
   public readonly authorizer: apigateway.CognitoUserPoolsAuthorizer;
 
   constructor(scope: Construct, id: string, props: BaseStackProps) {
     super(scope, id, props);
-
     this.api = this.createRestApi();
     this.authorizer = this.createAuthorizer();
     this.createApiResources();
@@ -23,69 +24,69 @@ export class ApiGatewayStack extends BaseStack {
     this.applyStandardTags(this);
   }
 
-private createRestApi(): apigateway.RestApi {
-  // Create a CloudWatch Logs group for access logs
-  const logGroup = new logs.LogGroup(this, 'ApiAccessLogs', {
-    retention: logs.RetentionDays.ONE_DAY,
-    removalPolicy: this.config.stage === 'prod'
-      ? cdk.RemovalPolicy.RETAIN
-      : cdk.RemovalPolicy.DESTROY,
-  });
+  private createRestApi(): apigateway.RestApi {
 
-  // Create IAM role explicitly (optional - CDK creates it by default if cloudWatchRole is true)
-  const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
-    assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-    managedPolicies: [
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonAPIGatewayPushToCloudWatchLogs'),
-    ],
-  });
+    // Creates a CloudWatch Logs group for access logs
+    const logGroup = new logs.LogGroup(this, 'ApiAccessLogs', {
+      retention: logs.RetentionDays.ONE_DAY,
+      removalPolicy: this.config.stage === 'prod'
+        ? cdk.RemovalPolicy.RETAIN
+        : cdk.RemovalPolicy.DESTROY,
+    });
 
-  const api = new apigateway.RestApi(this, 'MuseumAlertApi', {
-    restApiName: this.config.apiGateway.apiName,
-    description: 'Museum Alert API for IoT device management',
-
-    defaultCorsPreflightOptions: {
-      allowOrigins: apigateway.Cors.ALL_ORIGINS,
-      allowMethods: apigateway.Cors.ALL_METHODS,
-      allowHeaders: [
-        'Content-Type',
-        'X-Amz-Date',
-        'Authorization',
-        'X-Api-Key',
-        'X-Amz-Security-Token',
+    // Creates IAM role explicitly
+    const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
+      assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonAPIGatewayPushToCloudWatchLogs'),
       ],
-    },
+    });
 
-    deployOptions: {
-      stageName: this.config.stage,
-      loggingLevel: apigateway.MethodLoggingLevel.INFO,
-      dataTraceEnabled: true,
-      metricsEnabled: true,
-      accessLogDestination: new apigateway.LogGroupLogDestination(logGroup),
-      accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
-        caller: true,
-        httpMethod: true,
-        ip: true,
-        protocol: true,
-        requestTime: true,
-        resourcePath: true,
-        responseLength: true,
-        status: true,
-        user: true,
-      }),
-    },
+    const api = new apigateway.RestApi(this, 'MuseumAlertApi', {
+      restApiName: this.config.apiGateway.apiName,
+      description: 'Museum Alert API for IoT device management',
 
-    endpointConfiguration: {
-      types: [apigateway.EndpointType.REGIONAL],
-    },
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+        ],
+      },
 
-    cloudWatchRole: true, // allow API Gateway to push logs
-  });
+      deployOptions: {
+        stageName: this.config.stage,
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+        metricsEnabled: true,
+        accessLogDestination: new apigateway.LogGroupLogDestination(logGroup),
+        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
+          caller: true,
+          httpMethod: true,
+          ip: true,
+          protocol: true,
+          requestTime: true,
+          resourcePath: true,
+          responseLength: true,
+          status: true,
+          user: true,
+        }),
+      },
 
-  return api;
-}
+      endpointConfiguration: {
+        types: [apigateway.EndpointType.REGIONAL],
+      },
+      // Allows API Gateway to push logs
+      cloudWatchRole: true,
+    });
 
+    return api;
 
+  }
 
   private createAuthorizer(): apigateway.CognitoUserPoolsAuthorizer {
     // Import User Pool ARN and get reference
@@ -147,8 +148,8 @@ private createRestApi(): apigateway.RestApi {
 
     // Company endpoints - EXACT match to production
     const companyResource = this.api.root.addResource('company');
-    
-    companyResource.addMethod('GET', 
+
+    companyResource.addMethod('GET',
       new apigateway.LambdaIntegration(getCompanyFunction, {
         proxy: true,
       }),
@@ -171,7 +172,7 @@ private createRestApi(): apigateway.RestApi {
       )
     });
 
-    companyResource.addMethod('PUT', 
+    companyResource.addMethod('PUT',
       new apigateway.LambdaIntegration(updateCompanyFunction, {
         proxy: true,
         contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
@@ -200,11 +201,11 @@ private createRestApi(): apigateway.RestApi {
 
     // Device Management endpoints - EXACT match to production structure
     const deviceManagementResource = this.api.root.addResource('device-management');
-    
+
     // IMPORTANT: Provisioning Claims is NESTED under device-management
     const provisioningClaimsResource = deviceManagementResource.addResource('provisioning-claims');
-    
-    provisioningClaimsResource.addMethod('POST', 
+
+    provisioningClaimsResource.addMethod('POST',
       new apigateway.LambdaIntegration(createProvisioningClaimFunction, {
         proxy: true,
         contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
@@ -233,8 +234,8 @@ private createRestApi(): apigateway.RestApi {
 
     // Things endpoints - EXACT match to production
     const thingsResource = this.api.root.addResource('things');
-    
-    thingsResource.addMethod('GET', 
+
+    thingsResource.addMethod('GET',
       new apigateway.LambdaIntegration(getThingsByCompanyFunction, {
         proxy: true,
       }),
@@ -260,8 +261,8 @@ private createRestApi(): apigateway.RestApi {
 
     // Things with thingName parameter - EXACT match to production
     const thingNameResource = thingsResource.addResource('{thingName}');
-    
-    thingNameResource.addMethod('GET', 
+
+    thingNameResource.addMethod('GET',
       new apigateway.LambdaIntegration(checkThingExistsFunction, {
         proxy: true,
       }),
@@ -286,8 +287,8 @@ private createRestApi(): apigateway.RestApi {
 
     // User Policy endpoint - EXACT match to production
     const userPolicyResource = this.api.root.addResource('user-policy');
-    
-    userPolicyResource.addMethod('POST', 
+
+    userPolicyResource.addMethod('POST',
       new apigateway.LambdaIntegration(attachIoTPolicyFunction, {
         proxy: true,
         contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
@@ -316,8 +317,8 @@ private createRestApi(): apigateway.RestApi {
 
     // User management endpoints
     const userResource = this.api.root.addResource('user');
-    
-    userResource.addMethod('DELETE', 
+
+    userResource.addMethod('DELETE',
       new apigateway.LambdaIntegration(deleteUserLambdaFunction, {
         proxy: true,
       }),
