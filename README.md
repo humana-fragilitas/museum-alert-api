@@ -445,46 +445,18 @@ Once you have either setup working:
 # Preview changes before deployment
 npm run diff:dev
 
-# Deploy specific stack
-cdk deploy iot-project-lambda-dev --context stage=dev
+# Deploy all stacks
+npm run deploy:dev
 
-# Clean up resources
+# Clean up created resources
 npm run destroy:dev
 ```
 
 ## ⚠️ Important Notes
 
-- **Development environment** deploys to `eu-west-1` by default
-- **Production environment** uses `us-west-1` (use `npm run deploy:prod`)
-- All resources are tagged and named consistently for easy identification
-- DynamoDB tables in development are set to auto-delete when stack is destroyed
-
-
-### ERRORS
-
-state of deployment
-
-------------------------------------------------------------------------------------------------------------------------------------
-|                                                        DescribeStackEvents                                                       |
-+-----------------------------------+---------------------+-----------------------------------------+------------------------------+
-|  2025-07-28T13:08:15.060000+00:00 |  CREATE_COMPLETE    |  CognitoTriggerUpdaterLogGroup4B83A68F  |  None                        |
-|  2025-07-28T13:08:12.854000+00:00 |  CREATE_IN_PROGRESS |  CognitoTriggerResource                 |  None                        |
-|  2025-07-28T13:08:12.282000+00:00 |  CREATE_COMPLETE    |  CognitoTriggerUpdater81E025A2          |  None                        |
-|  2025-07-28T13:08:07.972000+00:00 |  CREATE_IN_PROGRESS |  CognitoTriggerUpdaterLogGroup4B83A68F  |  Resource creation Initiated |
-|  2025-07-28T13:08:07.108000+00:00 |  CREATE_IN_PROGRESS |  CognitoTriggerUpdaterLogGroup4B83A68F  |  None                        |
-+-----------------------------------+---------------------+-----------------------------------------+------------------------------+
-
-Hanged for 30 minutes here
-
-To investigate:
-
-aws cloudformation describe-stack-events --stack-name museum-alert-triggers-dev --region eu-west-2 --query 'StackEvents[0:5].[Timestamp,ResourceStatus,LogicalResourceId,ResourceStatusReason]' --output table
-
-This function errors out:
-
-CognitoTriggerUpdaterLogGroup4B83A68F
-
-It is probably not needed
+- **Development environment** deploys to `eu-west-1` by default;
+- all resources are named consistently for easy identification;
+- DynamoDB tables in development are set to auto-delete when stack is destroyed.
 
 ## Architecture diagrams
 
