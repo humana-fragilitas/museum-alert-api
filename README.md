@@ -485,3 +485,17 @@ This function errors out:
 CognitoTriggerUpdaterLogGroup4B83A68F
 
 It is probably not needed
+
+## Architecture diagrams
+
+### User registration flow
+
+![alt text](./docs/images/registration_flow_diagram.svg "Museum Alert User Registration Flow Diagram")
+
+### User authentication flow
+
+![alt text](./docs/images/authentication_flow_diagram.svg "Museum Alert User Authentication Flow Diagram")
+
+### Device registration flow
+
+![alt text](./docs/images/device_registration_flow_diagram.svg "Museum Alert Device Registration Flow Diagram")
