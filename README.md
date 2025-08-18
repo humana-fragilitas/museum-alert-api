@@ -479,10 +479,11 @@ This API is powered by AWS Lambda functions behind API Gateway; all endpoints ar
 
 #### 📘 Endpoints Overview
 
-| Endpoint                               | Method             | Description                                              |
-|----------------------------------------|-------------------------------------------------------------------------------|
-| ```/company```                               | PUT (PATCH?)       | Updates logged user's own associated Company information |
-| ```/device-management/provisioning-claims``` | POST               | Creates temporary certificate and private key to register a device |
-| ```/things```                                | GET                | Returns logged user's own Company registered sensors |
-| ```/things/{thingName}```                    | GET                | Returns thing identified by thing name (serial number) if registered in logged user's Company fleet |
-| ```/user-policy```                           | POST |             | Attaches Company-specific IoT Core policy to currently logged user |
+| Endpoint                                   | Method          | Description                                                                 |
+|-------------------------------------------|-----------------|------------------------------------------------------------------------------|
+| `/company`                                 | PUT (PATCH?)    | Updates logged user's own associated Company information                    |
+| `/device-management/provisioning-claims`   | POST            | Creates temporary certificate and private key to register a device          |
+| `/things`                                  | GET             | Returns logged user's own Company registered sensors                        |
+| `/things/{thingName}`                      | GET             | Returns thing identified by thing name (serial number) if registered in logged user's Company fleet |
+| `/user-policy`                             | POST            | Attaches Company-specific IoT Core policy to currently logged user          |
+
