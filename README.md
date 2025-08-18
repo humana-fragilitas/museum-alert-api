@@ -458,6 +458,10 @@ npm run destroy:dev
 - all resources are named consistently for easy identification;
 - DynamoDB tables in development are set to auto-delete when stack is destroyed.
 
+## Configuration Output
+
+![alt text](./docs/images/configuration_output.png "Cloud Formation Configuration Stack Output")
+
 ## Architecture diagrams
 
 ### User registration flow
@@ -481,6 +485,7 @@ This API is powered by AWS Lambda functions behind API Gateway; all endpoints ar
 
 | Endpoint                                   | Method          | Description                                                                 |
 |-------------------------------------------|-----------------|------------------------------------------------------------------------------|
+| `/company`                                 | GET    | Returns logged user's own associated Company information                    |
 | `/company`                                 | PUT (PATCH?)    | Updates logged user's own associated Company information                    |
 | `/device-management/provisioning-claims`   | POST            | Creates temporary certificate and private key to register a device          |
 | `/things`                                  | GET             | Returns logged user's own Company registered sensors                        |

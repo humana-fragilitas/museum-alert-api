@@ -172,7 +172,7 @@ export class ApiGatewayStack extends BaseStack {
       )
     });
 
-    companyResource.addMethod('PUT',
+    companyResource.addMethod('PATCH',
       new apigateway.LambdaIntegration(updateCompanyFunction, {
         proxy: true,
         contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
@@ -191,7 +191,7 @@ export class ApiGatewayStack extends BaseStack {
       functionName: updateCompanyArn,
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/PUT/company',
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/PATCH/company',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,
@@ -200,10 +200,7 @@ export class ApiGatewayStack extends BaseStack {
     });
 
     // Device Management endpoints - EXACT match to production structure
-    const deviceManagementResource = this.api.root.addResource('device-management');
-
-    // IMPORTANT: Provisioning Claims is NESTED under device-management
-    const provisioningClaimsResource = deviceManagementResource.addResource('provisioning-claims');
+    const provisioningClaimsResource = this.api.root.addResource('provisioning-claims');
 
     provisioningClaimsResource.addMethod('POST',
       new apigateway.LambdaIntegration(createProvisioningClaimFunction, {
@@ -224,7 +221,7 @@ export class ApiGatewayStack extends BaseStack {
       functionName: createProvisioningClaimArn,
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/device-management/provisioning-claims',
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/provisioning-claims',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,
