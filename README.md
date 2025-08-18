@@ -472,12 +472,12 @@ npm run destroy:dev
 
 ![alt text](./docs/images/device_registration_flow_diagram.svg "Museum Alert Device Registration Flow Diagram")
 
-### API
+## API
 
 Base URL: ```https://{api-gateway-id}.execute-api.{region}.amazonaws.com/dev```.
 This API is powered by AWS Lambda functions behind API Gateway; all endpoints are authenticated via Cognito Authorizer, partially follow RESTful conventions and return JSON responses.
 
-#### 📘 Endpoints Overview
+### 📘 Endpoints Overview
 
 | Endpoint                                   | Method          | Description                                                                 |
 |-------------------------------------------|-----------------|------------------------------------------------------------------------------|
