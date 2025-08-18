@@ -149,3 +149,4 @@ node_modules
 .cdk.staging
 cdk.out
 infrastructure-inventory
+.DS_Store
