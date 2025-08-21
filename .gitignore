@@ -142,6 +142,10 @@ infrastructure/check_production_role.sh
 
 *.js
 !jest.config.js
+!babel.config.json
+!test-setup.js
+!__tests__/**/*.js
+!__mocks__/**/*.js
 *.d.ts
 node_modules
 
