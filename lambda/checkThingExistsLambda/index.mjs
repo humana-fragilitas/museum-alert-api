@@ -14,7 +14,6 @@ export const handler = async (event) => {
     'USER_POOL_ID'
   ]);
 
-  const stage = event.requestContext?.stage;
   const thingName = event.pathParameters?.thingName;
   const authToken = event.headers?.Authorization;
   const region = process.env.AWS_REGION; 
@@ -25,7 +24,6 @@ export const handler = async (event) => {
     console.error('Thing name unavailable; exiting...');
 
     return errorApiResponse(
-      stage,
       'Missing or invalid thing name',
       403
     );
@@ -37,7 +35,6 @@ export const handler = async (event) => {
     console.error(`Cannot retrieve logged user's JWT token; exiting...`);
 
     return errorApiResponse(
-      stage,
       'Authentication token not found',
       401
     );
@@ -51,7 +48,6 @@ export const handler = async (event) => {
     console.error('User JWT token decoding failed; exiting...');
 
     return errorApiResponse(
-      stage,
       'Failed to decode user JWT token',
       500
     );
@@ -65,7 +61,6 @@ export const handler = async (event) => {
     console.error(`Company not found in logged user's JWT token; exiting...`);
 
     return errorApiResponse(
-      stage,
       `Company information not found in logged user's JWT token`,
       403
     );
@@ -79,7 +74,6 @@ export const handler = async (event) => {
     console.error('Failed to check if thing exists; exiting...');
 
     return errorApiResponse(
-      stage,
       'Failed to check if thing exists in IoT registry',
       500
     );
@@ -94,7 +88,7 @@ export const handler = async (event) => {
 
     console.log(message);
 
-    return successApiResponse(stage, {
+    return successApiResponse({
       message,
       thingName,
       company: (checkResponse.sameCompany) ? company : ''
@@ -105,7 +99,6 @@ export const handler = async (event) => {
     console.log(`Thing "${thingName}" not found in IoT registry`);
 
     return errorApiResponse(
-      stage,
       'Thing not found in IoT registry',
       404
     );

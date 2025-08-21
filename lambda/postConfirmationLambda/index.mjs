@@ -1,19 +1,15 @@
+import crypto from 'node:crypto';
+
 import {
   AdminAddUserToGroupCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient, 
-  CreateGroupCommand,
+  CreateGroupCommand
 } from '@aws-sdk/client-cognito-identity-provider';
-
 import {
-  DeleteItemCommand,
   DynamoDBClient,
-  GetItemCommand,
-  PutItemCommand,
-  UpdateItemCommand
+  PutItemCommand
 } from '@aws-sdk/client-dynamodb';
-
-import crypto from 'node:crypto';
 
 import {
   validateEnvironmentVariables
@@ -96,10 +92,6 @@ export const handler = async (event) => {
   } catch (error) {
 
     console.error('❌ Error during company setup:', error);
-    
-    // Rollback all created resources
-    await rollbackResources(userPoolId, username, companyId, createdResources);
-    
     console.error('Company setup failed, but user confirmation will proceed');
 
     return event;
@@ -202,133 +194,5 @@ const addUserToGroup = async (userPoolId, username, companyId) => {
   });
 
   await cognitoClient.send(command);
-
-};
-
-/**
- * Rollback created resources in case of failure
- */
-const rollbackResources = async (
-  userPoolId,
-  username,
-  companyId,
-  createdResources
-) => {
-
-  console.log('🔄 Rolling back created resources...');
-
-  try {
-
-    if (createdResources.userInGroup) {
-      console.log('Rolling back: user group membership');
-      // Add actual rollback code here if needed
-    }
-
-    if (createdResources.cognitoGroup) {
-      console.log('Rolling back: Cognito group');
-      // Add actual rollback code here if needed
-    }
-
-    if (createdResources.userAttributes) {
-
-      // Clear the company ID
-      const command = new AdminUpdateUserAttributesCommand({
-        UserPoolId: userPoolId,
-        Username: username,
-        UserAttributes: [
-          {
-            Name: 'custom:Company',
-            Value: ''
-          }
-        ]
-      });
-
-      await cognitoClient.send(command);
-      console.log('✅ Rolled back: user company ID');
-
-    }
-
-    if (createdResources.dynamoCompany) {
-
-      const command = new DeleteItemCommand({
-        TableName: COMPANIES_TABLE,
-        Key: {
-          companyId: { S: companyId }
-        }
-      });
-
-      await dynamoClient.send(command);
-      console.log('✅ Rolled back: DynamoDB company');
-
-    }
-
-  } catch (rollbackError) {
-
-    console.error('❌ Error during rollback:', rollbackError);
-
-  }
-
-};
-
-// ===== ALTERNATIVE: COMPANY MEMBER MANAGEMENT FUNCTIONS =====
-
-/**
- * Add a new member to existing company
- * (Use this when inviting users to existing companies)
- */
-export const addMemberToCompany = async (
-  companyId,
-  memberEmail,
-  memberUsername
-) => {
-
-  const now = new Date().toISOString();
-  
-  const command = new UpdateItemCommand({
-    TableName: COMPANIES_TABLE,
-    Key: {
-      companyId: { S: companyId }
-    },
-    UpdateExpression: `SET #members = list_append(#members, :newMember), ` +
-                      `#memberCount = #memberCount + :inc, #updatedAt = :now`,
-    ExpressionAttributeNames: {
-      '#members': 'members',
-      '#memberCount': 'memberCount',
-      '#updatedAt': 'updatedAt'
-    },
-    ExpressionAttributeValues: {
-      ':newMember': {
-        L: [{
-          M: {
-            email: { S: memberEmail },
-            username: { S: memberUsername },
-            role: { S: 'member' },
-            joinedAt: { S: now }
-          }
-        }]
-      },
-      ':inc': { N: '1' },
-      ':now': { S: now }
-    }
-  });
-
-  await dynamoClient.send(command);
-
-};
-
-/**
- * Get company details by ID
- */
-export const getCompany = async (companyId) => {
-
-  const command = new GetItemCommand({
-    TableName: COMPANIES_TABLE,
-    Key: {
-      companyId: { S: companyId }
-    }
-  });
-
-  const result = await dynamoClient.send(command);
-  return result.Item;
 
 };

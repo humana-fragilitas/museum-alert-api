@@ -3,7 +3,6 @@ import {
   GetItemCommand,
   UpdateItemCommand
 } from '@aws-sdk/client-dynamodb';
-
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 import { 
@@ -27,14 +26,11 @@ export const handler = async (event) => {
   
   validateEnvironmentVariables(['COMPANIES_TABLE']);
 
-  const stage = event.requestContext?.stage;
-
   const userClaims = event.requestContext?.authorizer?.claims;
   const companyId = userClaims?.['custom:Company'];
   
   if (!companyId) {
     return errorApiResponse(
-      stage,
       'User has no company ID associated with their account',
       404
     );
@@ -50,7 +46,6 @@ export const handler = async (event) => {
   } catch {
 
     return errorApiResponse(
-      stage,
       'Invalid JSON in request body',
       400
     );
@@ -65,7 +60,6 @@ export const handler = async (event) => {
   if (providedFields.length === 0) {
 
     return errorApiResponse(
-      stage,
       `No valid fields provided. Allowed fields: ${allowedFields.join(', ')}`,
       400
     );
@@ -78,7 +72,6 @@ export const handler = async (event) => {
   if (validationError) {
 
     return errorApiResponse(
-      stage,
       validationError,
       400,
     );
@@ -91,7 +84,6 @@ export const handler = async (event) => {
 
     if (!existingCompany) {
       return errorApiResponse(
-        stage,
         'Company not found',
         404
       );
@@ -127,7 +119,7 @@ export const handler = async (event) => {
 
     console.log(`✅ Successfully updated company: ${companyId}`);
 
-    return successApiResponse(stage, {
+    return successApiResponse({
       message: 'Company updated successfully',
       company: updatedCompany,
       updatedFields: providedFields
@@ -137,7 +129,6 @@ export const handler = async (event) => {
     
     if (error.name === 'ConditionalCheckFailedException') {
       return errorApiResponse(
-        stage,
         'Company not found',
         404
       );
@@ -146,7 +137,6 @@ export const handler = async (event) => {
     console.error('Error updating company:', error);
     
     return errorApiResponse(
-      stage,
       'Failed to update company',
       500,
       error.message

@@ -1,15 +1,20 @@
-import { DescribeThingCommand, DescribeEndpointCommand, IoTClient } from '@aws-sdk/client-iot';
+import {
+  DescribeThingCommand,
+  DescribeEndpointCommand,
+  IoTClient
+} from '@aws-sdk/client-iot';
 import {
   IoTDataPlaneClient,
   PublishCommand
 } from '@aws-sdk/client-iot-data-plane';
 
-const iotClient = new IoTClient();
 
+const iotClient = new IoTClient();
 // Cache the Data Plane client across Lambda invocations
 let iotDataClient;
 
 export const handler = async (event) => {
+
   try {
     // Initialize IoT Data Plane client if not already
     if (!iotDataClient) {
@@ -76,4 +81,5 @@ export const handler = async (event) => {
       body: `Error: ${error.message}`,
     };
   }
+
 };

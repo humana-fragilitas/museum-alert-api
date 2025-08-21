@@ -108,7 +108,6 @@ export class ApiGatewayStack extends BaseStack {
     const getThingsByCompanyArn = cdk.Fn.importValue(`${this.config.projectName}-getthingsbycompany-arn-${this.config.stage}`);
     const checkThingExistsArn = cdk.Fn.importValue(`${this.config.projectName}-checkthingexists-arn-${this.config.stage}`);
     const attachIoTPolicyArn = cdk.Fn.importValue(`${this.config.projectName}-attachiotpolicy-arn-${this.config.stage}`);
-    const deleteUserLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-deleteuserlambda-arn-${this.config.stage}`);
 
     // Get Lambda function references
     const getCompanyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedGetCompany', {
@@ -138,11 +137,6 @@ export class ApiGatewayStack extends BaseStack {
 
     const attachIoTPolicyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedAttachIoTPolicy', {
       functionArn: attachIoTPolicyArn,
-      sameEnvironment: true,
-    });
-
-    const deleteUserLambdaFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedDeleteUserLambda', {
-      functionArn: deleteUserLambdaArn,
       sameEnvironment: true,
     });
 
@@ -305,32 +299,6 @@ export class ApiGatewayStack extends BaseStack {
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
         'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/user-policy',
-        {
-          ApiId: this.api.restApiId,
-          StageName: this.config.stage,
-        }
-      )
-    });
-
-    // User management endpoints
-    const userResource = this.api.root.addResource('user');
-
-    userResource.addMethod('DELETE',
-      new apigateway.LambdaIntegration(deleteUserLambdaFunction, {
-        proxy: true,
-      }),
-      {
-        authorizer: this.authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    new lambda.CfnPermission(this, 'InvokeDeleteUser', {
-      action: 'lambda:InvokeFunction',
-      functionName: deleteUserLambdaArn,
-      principal: 'apigateway.amazonaws.com',
-      sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/DELETE/user',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,

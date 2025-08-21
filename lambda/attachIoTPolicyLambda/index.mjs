@@ -12,6 +12,7 @@ import {
   CognitoIdentityProviderClient
 } from '@aws-sdk/client-cognito-identity-provider';
 
+
 import { 
   errorApiResponse,
   successApiResponse,
@@ -26,7 +27,6 @@ export const handler = async (event, context) => {
     'IDENTITY_POOL_ID'
   ]);
 
-  const stage = event.requestContext?.stage;
   const identityPoolId = process.env.IDENTITY_POOL_ID;
   const iotClient = new IoTClient({
     region: process.env.AWS_REGION
@@ -43,7 +43,6 @@ export const handler = async (event, context) => {
     console.error('Logged user\'s claims not found; exiting...');
 
     return errorApiResponse(
-      stage,
       'Missing or invalid authentication context',
       401
     );
@@ -63,7 +62,6 @@ export const handler = async (event, context) => {
     );
 
     return errorApiResponse(
-      stage,
       'User ID (sub) not found in authentication token',
       400
     );
@@ -80,7 +78,6 @@ export const handler = async (event, context) => {
     );
 
     return errorApiResponse(
-      stage,
       'Company information not found in user profile',
       400
     );
@@ -147,7 +144,6 @@ export const handler = async (event, context) => {
                     `error details: `, error);
 
       return errorApiResponse(
-        stage,
         'Multiple requests to change this object were submitted simultaneously',
         400,
         { policyName, originalError: error.message }
@@ -158,7 +154,6 @@ export const handler = async (event, context) => {
       console.error('Invalid policy configuration:', error);
 
       return errorApiResponse(
-        stage,
         'Invalid policy configuration',
         400,
         { policyName, error: error.message }
@@ -169,7 +164,6 @@ export const handler = async (event, context) => {
       console.error('Insufficient permissions to create IoT policy:', error);
 
       return errorApiResponse(
-        stage,
         'Insufficient permissions to create IoT policy',
         403
       );
@@ -179,7 +173,6 @@ export const handler = async (event, context) => {
       console.error('Unexpected error creating IoT policy:', error);
 
       return errorApiResponse(
-        stage,
         'Failed to create IoT policy',
         500,
         { policyName, error: error.message }
@@ -211,7 +204,6 @@ export const handler = async (event, context) => {
     if (!identityId) {
 
       return errorApiResponse(
-        stage,
         'Failed to retrieve Cognito Identity ID',
         400
       );
@@ -228,7 +220,6 @@ export const handler = async (event, context) => {
         error);
 
       return errorApiResponse(
-        stage,
         'Invalid identity pool configuration',
         400
       );
@@ -238,7 +229,6 @@ export const handler = async (event, context) => {
       console.error('Unauthorized access to Cognito Identity Pool:', error);
 
       return errorApiResponse(
-        stage,
         'Invalid or expired authentication token',
         401
       );
@@ -248,7 +238,6 @@ export const handler = async (event, context) => {
       console.error('Cognito Identity Pool not found:', error);
 
       return errorApiResponse(
-        stage,
         'Cognito Identity Pool not found',
         500
       );
@@ -258,7 +247,6 @@ export const handler = async (event, context) => {
       console.error('Error getting Cognito Identity ID:', error);
 
       return errorApiResponse(
-        stage,
         'Failed to retrieve Cognito Identity ID',
         500,
         { error: error.message }
@@ -282,7 +270,6 @@ export const handler = async (event, context) => {
     if (error.name === 'ResourceNotFoundException') {
 
       return errorApiResponse(
-        stage,
         'IoT policy not found',
         404,
         { policyName }
@@ -291,7 +278,6 @@ export const handler = async (event, context) => {
     } else if (error.name === 'InvalidRequestException') {
 
       return errorApiResponse(
-        stage,
         'Invalid policy attachment request',
         400,
         { policyName, identityId }
@@ -300,7 +286,6 @@ export const handler = async (event, context) => {
     } else if (error.name === 'UnauthorizedException') {
 
       return errorApiResponse(
-        stage,
         'Insufficient permissions to attach IoT policy',
         403
       );
@@ -308,7 +293,6 @@ export const handler = async (event, context) => {
     } else if (error.name === 'ServiceUnavailableException') {
 
       return errorApiResponse(
-        stage,
         'IoT service temporarily unavailable',
         503
       );
@@ -318,7 +302,6 @@ export const handler = async (event, context) => {
       console.error('Error attaching IoT policy:', error); 
 
       return errorApiResponse(
-        stage,
         'Failed to attach IoT policy',
         500,
         { policyName, identityId, error: error.message }
@@ -355,7 +338,7 @@ export const handler = async (event, context) => {
       `updated successfully`
     );
 
-    return successApiResponse(stage, {
+    return successApiResponse({
       message: 'IoT policy attached and user attribute updated successfully',
       policyName: policyName,
       identityId: identityId,
@@ -369,7 +352,6 @@ export const handler = async (event, context) => {
       console.error(`User '${userSub}' not found in Cognito User Pool:`, error);
 
       return errorApiResponse(
-        stage,
         'User not found in Cognito User Pool',
         404,
         { username: userSub }
@@ -380,7 +362,6 @@ export const handler = async (event, context) => {
       console.error('Invalid parameters for user attribute update:', error);
 
       return errorApiResponse(
-        stage,
         'Invalid user attribute update request',
         400
       );
@@ -390,7 +371,6 @@ export const handler = async (event, context) => {
       console.error('Unauthorized access to update user attributes:', error);
 
       return errorApiResponse(
-        stage,
         'Insufficient permissions to update user attributes',
         403
       );
@@ -400,7 +380,6 @@ export const handler = async (event, context) => {
       console.error('Error updating user attribute:', error);
 
       return errorApiResponse(
-        stage,
         'Failed to update user attribute',
         500,
         { username: userSub, error: error.message }

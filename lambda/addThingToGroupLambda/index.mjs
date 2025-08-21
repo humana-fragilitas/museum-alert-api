@@ -1,20 +1,27 @@
-import { IoTClient, DescribeThingCommand, CreateThingGroupCommand, DescribeThingGroupCommand, AddThingToThingGroupCommand } from "@aws-sdk/client-iot";
+import {
+    IoTClient,
+    DescribeThingCommand,
+    CreateThingGroupCommand,
+    DescribeThingGroupCommand,
+    AddThingToThingGroupCommand
+} from "@aws-sdk/client-iot";
 
 const iotClient = new IoTClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event) => {
+
     console.log('Received event:', JSON.stringify(event, null, 2));
     
     try {
-        // Extract thing name from the event
+
         const thingName = extractThingNameFromEvent(event);
+
         if (!thingName) {
             throw new Error('Could not extract thing name from event');
         }
         
         console.log(`Processing thing: ${thingName}`);
         
-        // Get thing details including custom attributes
         const thingDetails = await getThingDetails(thingName);
         console.log('Thing details:', JSON.stringify(thingDetails, null, 2));
         
@@ -30,14 +37,11 @@ export const handler = async (event) => {
         
         console.log(`Company extracted: ${company}`);
         
-        // Create group name
         const groupName = `Company-Group-${company}`;
         console.log(`Target group name: ${groupName}`);
         
-        // Ensure thing group exists
         await ensureThingGroupExists(groupName, company);
         
-        // Add thing to group
         await addThingToGroup(thingName, groupName);
         
         console.log(`Successfully added ${thingName} to group ${groupName}`);

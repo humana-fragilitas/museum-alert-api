@@ -1,4 +1,7 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  createRemoteJWKSet,
+  jwtVerify
+} from 'jose';
 
 
 export async function getDecodedUserToken(reg, userPoolId, token) {

@@ -1,5 +1,5 @@
 
-import { IoTClient, DescribeThingCommand } from "@aws-sdk/client-iot";
+import { IoTClient, DescribeThingCommand } from '@aws-sdk/client-iot';
 
 
 export async function thingAlreadyExists(reg, thingName, company) {
@@ -19,7 +19,7 @@ export async function thingAlreadyExists(reg, thingName, company) {
 
     return {
       exists: true,
-      sameCompany: response.attributes["Company"] === company
+      sameCompany: response.attributes['Company'] === company
     };
 
   } catch(error) {
