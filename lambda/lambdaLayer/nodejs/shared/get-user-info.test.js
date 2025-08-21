@@ -1,5 +1,5 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
-import { getUserInfo } from '../../lambda/lambdaLayer/nodejs/shared/get-user-info.js';
+import { getUserInfo } from './get-user-info.js';
 
 describe('getUserInfo', () => {
   beforeEach(() => {

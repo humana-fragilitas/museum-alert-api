@@ -1,7 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { IoTClient, DescribeThingCommand } from '@aws-sdk/client-iot';
-import { thingAlreadyExists } from '../../lambda/lambdaLayer/nodejs/shared/thing-already-exists.helper.js';
+import { thingAlreadyExists } from './thing-already-exists.helper.js';
 
 const iotMock = mockClient(IoTClient);
 

@@ -1,7 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { IoTClient, ListThingsInThingGroupCommand } from '@aws-sdk/client-iot';
-import { handler } from '../../lambda/getThingsByCompanyLambda/index.mjs';
+import { handler } from './index.mjs';
 
 const iotMock = mockClient(IoTClient);
 

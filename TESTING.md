@@ -4,26 +4,39 @@ This project includes comprehensive Jest unit tests for all Lambda functions and
 
 ## Test Structure
 
+Tests are organized **side-by-side** with the code they test for better maintainability:
+
+### Lambda Function Tests
 ```
-__tests__/
-├── helpers/                     # Tests for Lambda Layer helpers
-│   ├── decode-user-token.helper.test.js
-│   ├── error-api-response.helper.test.js
-│   ├── get-user-info.test.js
-│   ├── success-api-response.helper.test.js
-│   ├── thing-already-exists.helper.test.js
-│   └── validate-environment-vars.helper.test.js
-└── lambdas/                     # Tests for Lambda functions
-    ├── addThingToGroupLambda.test.js
-    ├── attachIoTPolicyLambda.test.js
-    ├── checkThingExistsLambda.test.js
-    ├── createProvisioningClaimLambda.test.js
-    ├── getCompanyLambda.test.js
-    ├── getThingsByCompanyLambda.test.js
-    ├── postConfirmationLambda.test.js
-    ├── preProvisioningHookLambda.test.js
-    ├── republishDeviceConnectionStatusLambda.test.js
-    └── updateCompanyLambda.test.js
+lambda/
+├── addThingToGroupLambda/
+│   ├── index.mjs
+│   └── addThingToGroupLambda.test.js
+├── attachIoTPolicyLambda/
+│   ├── index.mjs
+│   └── attachIoTPolicyLambda.test.js
+├── checkThingExistsLambda/
+│   ├── index.mjs
+│   └── checkThingExistsLambda.test.js
+└── ... (and so on for all lambdas)
+```
+
+### Helper Function Tests  
+```
+lambda/lambdaLayer/nodejs/shared/
+├── decode-user-token.helper.js
+├── decode-user-token.helper.test.js
+├── error-api-response.helper.js
+├── error-api-response.helper.test.js
+├── get-user-info.js
+├── get-user-info.test.js
+└── ... (and so on for all helpers)
+```
+
+### Mock Files
+```
+mocks/
+└── jose.js                      # ESM mock for JWT operations
 ```
 
 ## Running Tests

@@ -1,7 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { handler } from '../../lambda/getCompanyLambda/index.mjs';
+import { handler } from './index.mjs';
 
 const dynamoMock = mockClient(DynamoDBClient);
 

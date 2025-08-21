@@ -1,5 +1,5 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
-import { errorApiResponse } from '../../lambda/lambdaLayer/nodejs/shared/error-api-response.helper.js';
+import { errorApiResponse } from './error-api-response.helper.js';
 
 describe('errorApiResponse', () => {
   beforeEach(() => {

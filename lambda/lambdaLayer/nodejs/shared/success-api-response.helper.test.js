@@ -1,5 +1,5 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
-import { successApiResponse } from '../../lambda/lambdaLayer/nodejs/shared/success-api-response.helper.js';
+import { successApiResponse } from './success-api-response.helper.js';
 
 describe('successApiResponse', () => {
   beforeEach(() => {

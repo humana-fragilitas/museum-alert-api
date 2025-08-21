@@ -6,7 +6,7 @@ import {
   CognitoIdentityProviderClient, 
   AdminUpdateUserAttributesCommand 
 } from '@aws-sdk/client-cognito-identity-provider';
-import { handler } from '../../lambda/attachIoTPolicyLambda/index.mjs';
+import { handler } from './index.mjs';
 
 const iotMock = mockClient(IoTClient);
 const cognitoIdentityMock = mockClient(CognitoIdentityClient);

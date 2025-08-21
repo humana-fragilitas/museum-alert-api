@@ -4,10 +4,12 @@ module.exports = {
     'lambda/**/*.{js,mjs}',
     '!lambda/**/node_modules/**',
     '!lambda/lambdaLayer/nodejs/node_modules/**',
-    '!**/coverage/**'
+    '!lambda/lambdaLayer/nodejs/shared/index.js',
+    '!**/coverage/**',
+    '!**/*.test.{js,mjs}'
   ],
   testMatch: [
-    '**/__tests__/**/*.{js,mjs}',
+    '**/lambda/**/*.test.{js,mjs}',
     '**/?(*.)+(spec|test).{js,mjs}'
   ],
   transform: {
@@ -23,6 +25,8 @@ module.exports = {
     '^/opt/nodejs/shared/index\\.js$': '<rootDir>/lambda/lambdaLayer/nodejs/shared/index.js'
   },
   setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
+  // Mock directories
+  roots: ['<rootDir>/lambda', '<rootDir>/mocks'],
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,

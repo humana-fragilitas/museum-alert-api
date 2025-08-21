@@ -1,5 +1,5 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
-import { handler } from '../../lambda/preProvisioningHookLambda/index.mjs';
+import { handler } from './index.mjs';
 
 // Mock the lambda layer helpers
 jest.mock('/opt/nodejs/shared/index.js', () => ({

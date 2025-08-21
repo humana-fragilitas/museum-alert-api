@@ -1,5 +1,5 @@
 import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { validateEnvironmentVariables } from '../../lambda/lambdaLayer/nodejs/shared/validate-environment-vars.helper.js';
+import { validateEnvironmentVariables } from './validate-environment-vars.helper.js';
 
 describe('validateEnvironmentVariables', () => {
   const originalEnv = process.env;

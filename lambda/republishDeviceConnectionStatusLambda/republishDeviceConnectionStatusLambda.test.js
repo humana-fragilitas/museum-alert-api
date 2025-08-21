@@ -4,7 +4,7 @@ import { IoTClient, DescribeThingCommand, DescribeEndpointCommand } from '@aws-s
 import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
 
 // Import the handler
-import { handler } from '../../lambda/republishDeviceConnectionStatusLambda/index.mjs';
+import { handler } from './index.mjs';
 
 // Create mocks
 const iotMock = mockClient(IoTClient);

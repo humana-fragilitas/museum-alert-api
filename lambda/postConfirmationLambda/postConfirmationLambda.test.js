@@ -7,7 +7,7 @@ import {
   CreateGroupCommand 
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { handler } from '../../lambda/postConfirmationLambda/index.mjs';
+import { handler } from './index.mjs';
 
 const cognitoMock = mockClient(CognitoIdentityProviderClient);
 const dynamoMock = mockClient(DynamoDBClient);

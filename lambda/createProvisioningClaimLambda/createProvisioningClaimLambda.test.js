@@ -1,7 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { IoTClient, CreateProvisioningClaimCommand } from '@aws-sdk/client-iot';
-import { handler } from '../../lambda/createProvisioningClaimLambda/index.mjs';
+import { handler } from './index.mjs';
 
 const iotMock = mockClient(IoTClient);
 

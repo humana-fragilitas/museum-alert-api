@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-iot';
 
 // Import the handler
-import { handler } from '../../lambda/addThingToGroupLambda/index.mjs';
+import { handler } from './index.mjs';
 
 // Create mock
 const iotMock = mockClient(IoTClient);

@@ -5,7 +5,7 @@ jest.mock('jose');
 
 // Import mocked functions and the function under test
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { getDecodedUserToken } from '../../lambda/lambdaLayer/nodejs/shared/decode-user-token.helper.js';
+import { getDecodedUserToken } from './decode-user-token.helper.js';
 
 // Cast to jest.MockedFunction for TypeScript-like usage
 const mockCreateRemoteJWKSet = createRemoteJWKSet;
