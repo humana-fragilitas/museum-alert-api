@@ -23,7 +23,6 @@ export class LambdaStack extends BaseStack {
     this.sharedLayer = props.sharedLayer;
     this.createCompanyFunctions();
     this.createIoTFunctions();
-    this.createCognitoFunctions();
     this.createDeviceManagementFunctions();
     this.createOutputs();
     this.applyStandardTags(this);
@@ -229,26 +228,6 @@ export class LambdaStack extends BaseStack {
         ]
       })
     );
-
-  }
-
-  private createCognitoFunctions(): void {
-
-    const config = {
-      lambda: {
-        timeout: 10,
-        memorySize: 512,
-      },
-    };
-
-    // TO DO: this is unused: to be removed!
-    this.functions.deleteUserLambda = createLambdaFunction({
-      scope: this,
-      id: 'DeleteUserLambdaFunction',
-      functionName: 'deleteUserLambda',
-      assetPath: './lambda/deleteUserLambda',
-      config
-    });
 
   }
 

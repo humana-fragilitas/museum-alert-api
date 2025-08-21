@@ -1,5 +1,3 @@
-import { hasCors } from './has-cors.helper.js';
-
 export function successApiResponse(data,
                                    statusCode = 200) {
 
