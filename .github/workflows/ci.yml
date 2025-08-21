@@ -32,22 +32,12 @@ jobs:
         echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
         echo "Coverage: $COVERAGE%"
         
-    - name: Determine badge color
-      run: |
-        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
-          echo "BADGE_COLOR=brightgreen" >> $GITHUB_ENV
-        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
-          echo "BADGE_COLOR=yellow" >> $GITHUB_ENV
-        else
-          echo "BADGE_COLOR=red" >> $GITHUB_ENV
-        fi
-        
     - name: Create Coverage Badge
       uses: schneegans/dynamic-badges-action@v1.7.0
       with:
         auth: ${{ secrets.GIST_TOKEN }}
         gistID: ${{ secrets.GIST_ID }}
-        filename: museum-alert-api-coverage-badge.json
+        filename: coverage-badge.json
         label: Coverage
         message: ${{ env.COVERAGE }}%
-        color: ${{ env.BADGE_COLOR }}
+        color: ${{ env.COVERAGE > 80 && 'brightgreen' || env.COVERAGE > 60 && 'yellow' || 'red' }}
