@@ -1,4 +1,7 @@
 # museum-alert-api
+
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/humana-fragilitas/c5e59bb95d53e6062c676cd9b89120a4/raw/coverage-badge.json)](https://github.com/humana-fragilitas/museum-alert-api/actions)
+
 RESTful APIs meant to complement the "Museum Alert" IoT project
 
 ## Lambda layer deployment

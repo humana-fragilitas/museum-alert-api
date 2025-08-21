@@ -25,6 +25,9 @@ module.exports = {
     '^/opt/nodejs/shared/index\\.js$': '<rootDir>/lambda/lambdaLayer/nodejs/shared/index.js'
   },
   setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
+  // Coverage reporting
+  coverageReporters: ['text', 'lcov', 'json-summary'],
+  coverageDirectory: 'coverage',
   // Mock directories
   roots: ['<rootDir>/lambda', '<rootDir>/mocks'],
   clearMocks: true,
