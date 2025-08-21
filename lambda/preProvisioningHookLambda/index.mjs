@@ -14,7 +14,7 @@ export const handler = async (event, context) => {
 
   let company;
 
-  const provisioningRequest = event.parameters;
+  const provisioningRequest = event.parameters || {};
   const thingName = provisioningRequest.ThingName;
   const idToken = provisioningRequest.idToken;
 
@@ -61,14 +61,31 @@ export const handler = async (event, context) => {
 
   }
 
-  if (await thingAlreadyExists(region, thingName, company).exists) {
+  try {
+    const thingCheckResult = await thingAlreadyExists(region, thingName, company);
 
-    console.error('Thing already exists; exiting...');
+    // If thingCheckResult is null (service error), deny provisioning for safety
+    if (!thingCheckResult) {
+      console.error('Service error when checking if thing exists; denying provisioning for safety');
+      return {
+        allowProvisioning: false
+      };
+    }
 
+    if (thingCheckResult.exists) {
+
+      console.error('Thing already exists; exiting...');
+
+      return {
+        allowProvisioning: false
+      };
+
+    }
+  } catch (error) {
+    console.error('Error checking if thing exists; denying provisioning:', error);
     return {
       allowProvisioning: false
     };
-
   }
 
   provisioningRequest.Region = region;

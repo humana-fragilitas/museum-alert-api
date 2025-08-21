@@ -19,7 +19,8 @@ export const handler = async (event) => {
   const region = process.env.AWS_REGION; 
   const userPoolId = process.env.USER_POOL_ID;
 
-  const maxResults = parseInt(event.queryStringParameters?.maxResults || '50');
+  const maxResultsParam = event.queryStringParameters?.maxResults;
+  const maxResults = maxResultsParam ? parseInt(maxResultsParam) || 50 : 50;
   const nextToken = event.queryStringParameters?.nextToken;
 
   if (!authToken) {

@@ -40,7 +40,7 @@ export const handler = async (event) => {
     if (error.name === 'InternalFailureException') {
 
       return errorApiResponse(
-        `An internal failure prevented the provisionig claim ` +
+        `An internal failure prevented the provisioning claim ` +
         `from being created`,
         500,
         error.message
@@ -49,7 +49,7 @@ export const handler = async (event) => {
     } else if (error.name === 'InvalidRequestException') {
 
       return errorApiResponse(
-        'An invalid request prevented the provisionig claim from being created',
+        'An invalid request prevented the provisioning claim from being created',
         400, 
         error.message
       );
@@ -57,7 +57,7 @@ export const handler = async (event) => {
     } else if (error.name === 'ResourceNotFoundException') { 
 
       return errorApiResponse(
-        `A non existing required resource prevented the provisionig claim ` +
+        `A non existing required resource prevented the provisioning claim ` +
         `from being created`,
         404,
         error.message
@@ -66,7 +66,7 @@ export const handler = async (event) => {
     } else if (error.name === 'ServiceUnavailableException') {
 
       return errorApiResponse(
-        `Service unavailability prevented the provisionig claim ` +
+        `Service unavailability prevented the provisioning claim ` +
         `from being created`,
         503,
         error.message
@@ -75,24 +75,24 @@ export const handler = async (event) => {
     } else if (error.name === 'ThrottlingException') {
 
       return errorApiResponse(
-        'Service throttling prevented the provisionig claim from being created',
-        400,
+        'Service throttling prevented the provisioning claim from being created',
+        429,
         error.message
       );
 
     } else if (error.name === 'UnauthorizedException') {
       
       return errorApiResponse(
-        `Unauthorized access prevented the provisionig claim ` +
+        `Unauthorized access prevented the provisioning claim ` +
         `from being created`,
-        401,
+        403,
         error.message
       );
 
     } else {
 
       return errorApiResponse(
-        `An unexpected error prevented the provisionig claim ` +
+        `An unexpected error prevented the provisioning claim ` +
         `from being created`,
         500,
         error.message
