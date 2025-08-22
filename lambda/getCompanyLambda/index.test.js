@@ -1,11 +1,21 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
+
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+
 import { handler } from './index.mjs';
+
 
 const dynamoMock = mockClient(DynamoDBClient);
 
 describe('getCompanyLambda', () => {
+
   beforeEach(() => {
     dynamoMock.reset();
     jest.clearAllMocks();
@@ -15,6 +25,7 @@ describe('getCompanyLambda', () => {
   });
 
   test('should successfully return company data for authorized user', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -56,9 +67,11 @@ describe('getCompanyLambda', () => {
     expect(responseBody.data.companyName).toBe('Test Company');
     expect(responseBody.data.userRole).toBe('admin');
     expect(responseBody.data.userJoinedAt).toBe('2023-01-01T00:00:00Z');
+
   });
 
   test('should return error when user claims are missing', async () => {
+
     const mockEvent = {
       requestContext: {}
     };
@@ -69,9 +82,11 @@ describe('getCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('Missing or invalid authentication context');
+
   });
 
   test('should return error when company ID is missing from claims', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -88,9 +103,11 @@ describe('getCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('User has no company associated with their account');
+
   });
 
   test('should return error when company is not found', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -110,9 +127,11 @@ describe('getCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('Company not found');
+
   });
 
   test('should return error when user does not belong to company', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -149,5 +168,7 @@ describe('getCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('User does not belong to this company');
+
   });
+  
 });

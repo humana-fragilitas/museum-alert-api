@@ -1,3 +1,6 @@
+/**
+ * Helper to format an error API response
+ */
 export function errorApiResponse(message,
                                  statusCode,
                                  details = null) {

@@ -242,30 +242,6 @@ export class LambdaStack extends BaseStack {
 
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
 
-    this.functions.getThingsByCompany = createLambdaFunction({
-      scope: this,
-      id: 'GetThingsByCompanyFunction',
-      functionName: 'getThingsByCompany',
-      assetPath: './lambda/getThingsByCompanyLambda',
-      environment: { USER_POOL_ID: userPoolId },
-      sharedLayer: this.sharedLayer,
-      config
-    });
-
-    this.functions.getThingsByCompany.role?.attachInlinePolicy(
-      new iam.Policy(this, 'getThingsByCompanyLambdaPolicy', {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ['iot:ListThingsInThingGroup'],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
-            ]
-          })
-        ]
-      })
-    );
-
     this.functions.preProvisioningHook = createLambdaFunction({
       scope: this,
       id: 'PreProvisioningHookFunction',

@@ -1,11 +1,25 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
+
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBClient,
+  GetItemCommand,
+  UpdateItemCommand
+} from '@aws-sdk/client-dynamodb';
+
 import { handler } from './index.mjs';
+
 
 const dynamoMock = mockClient(DynamoDBClient);
 
 describe('updateCompanyLambda', () => {
+
   beforeEach(() => {
     dynamoMock.reset();
     jest.clearAllMocks();
@@ -15,6 +29,7 @@ describe('updateCompanyLambda', () => {
   });
 
   test('should successfully update company with valid data', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -59,9 +74,11 @@ describe('updateCompanyLambda', () => {
       status: 'active'
     });
     expect(responseBody.data.updatedFields).toEqual(['companyName', 'status']);
+
   });
 
   test('should return error when company ID is missing from claims', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -79,9 +96,11 @@ describe('updateCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('User has no company ID associated with their account');
+
   });
 
   test('should return error when no valid fields are provided', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -101,9 +120,11 @@ describe('updateCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('No valid fields provided. Allowed fields: companyName, status');
+
   });
 
   test('should handle company not found error', async () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -126,5 +147,7 @@ describe('updateCompanyLambda', () => {
     
     const responseBody = JSON.parse(result.body);
     expect(responseBody.error.message).toBe('Company not found');
+
   });
+  
 });

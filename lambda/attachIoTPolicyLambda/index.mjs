@@ -12,14 +12,17 @@ import {
   CognitoIdentityProviderClient
 } from '@aws-sdk/client-cognito-identity-provider';
 
-
 import { 
   errorApiResponse,
   successApiResponse,
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
 
-
+/**
+ * Lambda function to attach IoT policy to a user's Cognito Identity.
+ * The policy is created if it does not already exist, and is based on
+ * the user's company information.
+ */
 export const handler = async (event, context) => {
 
   validateEnvironmentVariables([
@@ -27,20 +30,21 @@ export const handler = async (event, context) => {
     'IDENTITY_POOL_ID'
   ]);
 
+  const region = process.env.AWS_REGION;
   const identityPoolId = process.env.IDENTITY_POOL_ID;
   const iotClient = new IoTClient({
-    region: process.env.AWS_REGION
+    region
   });
   const cognitoIdentityClient = new CognitoIdentityClient({
-    region: process.env.AWS_REGION
+    region
   });
   const cognitoIdpClient = new CognitoIdentityProviderClient({
-    region: process.env.AWS_REGION
+    region
   });
 
   if (!event.requestContext?.authorizer?.claims) {
 
-    console.error('Logged user\'s claims not found; exiting...');
+    console.error(`Logged user's claims not found; exiting...`);
 
     return errorApiResponse(
       'Missing or invalid authentication context',
@@ -52,14 +56,10 @@ export const handler = async (event, context) => {
   const userSub = event.requestContext.authorizer.claims.sub;
   const userPoolId = event.requestContext.authorizer.claims.iss.split('/')[3];
   const accountId = context.invokedFunctionArn.split(':')[4];
-  const region = context.invokedFunctionArn.split(':')[3];
 
   if (!userSub) {
 
-    console.error(
-      `User ID (sub) not found in logged user\'s authentication token; ` +
-      `exiting...`
-    );
+    console.error(`User ID (sub) not found in logged user's authentication token; exiting...`);
 
     return errorApiResponse(
       'User ID (sub) not found in authentication token',
@@ -72,10 +72,7 @@ export const handler = async (event, context) => {
 
   if (!company) { 
 
-    console.error(
-      `Company information not found in logged user\'s custom properties; ` +
-      `exiting...`
-    );
+    console.error(`Company information not found in logged user's custom properties; exiting...`);
 
     return errorApiResponse(
       'Company information not found in user profile',
@@ -138,10 +135,10 @@ export const handler = async (event, context) => {
 
     } else if (error.name === 'ConcurrentModificationException') {
 
-      console.error(`The request was rejected because multiple requests `   +
-                    `to change this object were submitted simultaneously. ` +
-                    `Wait a few minutes and submit your request again; `    +
-                    `error details: `, error);
+      console.error('The request was rejected because multiple requests '   +
+                    'to change this object were submitted simultaneously. ' +
+                    'Wait a few minutes and submit your request again; '    +
+                    'error details: ', error);
 
       return errorApiResponse(
         'Multiple requests to change this object were submitted simultaneously',
@@ -313,10 +310,7 @@ export const handler = async (event, context) => {
 
   try {
 
-    console.log(
-      `Updating user '${userSub}' attribute ` + 
-      `'custom:hasPolicy' in Cognito User Pool`
-    );
+    console.log(`Updating user '${userSub}' attribute 'custom:hasPolicy' in Cognito User Pool`);
 
     const updateUserParams = {
       UserPoolId: userPoolId,
@@ -333,10 +327,7 @@ export const handler = async (event, context) => {
       new AdminUpdateUserAttributesCommand(updateUserParams)
     );
 
-    console.log(
-      `User '${userSub}' attribute 'custom:hasPolicy' ` +
-      `updated successfully`
-    );
+    console.log(`User '${userSub}' attribute 'custom:hasPolicy' updated successfully`);
 
     return successApiResponse({
       message: 'IoT policy attached and user attribute updated successfully',

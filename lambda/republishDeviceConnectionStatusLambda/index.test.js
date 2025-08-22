@@ -1,24 +1,38 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
-import { mockClient } from 'aws-sdk-client-mock';
-import { IoTClient, DescribeThingCommand, DescribeEndpointCommand } from '@aws-sdk/client-iot';
-import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
 
-// Import the handler
+import { mockClient } from 'aws-sdk-client-mock';
+import {
+  IoTClient,
+  DescribeThingCommand,
+  DescribeEndpointCommand
+} from '@aws-sdk/client-iot';
+import {
+  IoTDataPlaneClient,
+  PublishCommand
+} from '@aws-sdk/client-iot-data-plane';
+
 import { handler } from './index.mjs';
 
-// Create mocks
+
 const iotMock = mockClient(IoTClient);
 const iotDataMock = mockClient(IoTDataPlaneClient);
 
 describe('republishDeviceConnectionStatusLambda', () => {
+
   beforeEach(() => {
-    // Reset all mocks
     iotMock.reset();
     iotDataMock.reset();
     jest.clearAllMocks();
   });
 
   test('should successfully republish connection status for connected device', async () => {
+
     const mockEvent = {
       clientId: 'test-device-001',
       eventType: 'connected',
@@ -71,9 +85,11 @@ describe('republishDeviceConnectionStatusLambda', () => {
       statusCode: 200,
       body: 'Processed event for thing: test-device-001 and company: test-company'
     });
+
   });
 
   test('should successfully republish connection status for disconnected device', async () => {
+
     const mockEvent = {
       clientId: 'test-device-002',
       eventType: 'disconnected',
@@ -105,9 +121,11 @@ describe('republishDeviceConnectionStatusLambda', () => {
       sn: 'test-device-002',
       data: { connected: false }
     });
+
   });
 
   test('should return error when client ID is missing', async () => {
+
     const mockEvent = {
       eventType: 'connected',
       timestamp: 1234567890
@@ -119,9 +137,11 @@ describe('republishDeviceConnectionStatusLambda', () => {
       statusCode: 500,
       body: 'Error: Missing client id in event'
     });
+
   });
 
   test('should return error when thing has no company attribute', async () => {
+
     const mockEvent = {
       clientId: 'test-device-003',
       eventType: 'connected',
@@ -143,9 +163,11 @@ describe('republishDeviceConnectionStatusLambda', () => {
       statusCode: 400,
       body: 'No Company attribute found for thing: test-device-003'
     });
+
   });
 
   test('should handle DescribeThingCommand errors', async () => {
+
     const mockEvent = {
       clientId: 'test-device-004',
       eventType: 'connected',
@@ -164,9 +186,11 @@ describe('republishDeviceConnectionStatusLambda', () => {
       statusCode: 500,
       body: 'Error: Thing not found'
     });
+
   });
 
   test('should handle PublishCommand errors', async () => {
+
     const mockEvent = {
       clientId: 'test-device-006',
       eventType: 'connected',
@@ -192,5 +216,7 @@ describe('republishDeviceConnectionStatusLambda', () => {
       statusCode: 500,
       body: 'Error: Publish failed'
     });
+
   });
+  
 });

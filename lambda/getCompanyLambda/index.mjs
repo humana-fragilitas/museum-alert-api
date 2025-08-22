@@ -16,10 +16,8 @@ const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
- * Get Company Lambda Function
- * 
- * Retrieves the authenticated user's company data
- * Company ID is extracted from user's JWT token (custom:Company claim)
+ * Retrieves the authenticated user's Company data;
+ * Company id is extracted from session JWT token (custom:Company property).
  */
 export const handler = async (event) => {
   

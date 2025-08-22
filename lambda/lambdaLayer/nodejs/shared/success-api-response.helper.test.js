@@ -1,7 +1,16 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
+
 import { successApiResponse } from './success-api-response.helper.js';
 
+
 describe('successApiResponse', () => {
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -55,4 +64,5 @@ describe('successApiResponse', () => {
     
     expect(body.timestamp).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
   });
+  
 });

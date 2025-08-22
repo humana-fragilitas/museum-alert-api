@@ -4,7 +4,12 @@ import {
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js'; 
 
-
+/**
+ * Lambda function handler for pre-provisioning hook:
+ * passes additional parameters to the provisioning template
+ * (e.g.: Company id from user token) so that the created
+ * IoT policy can be restricted to the user's Company.
+ */
 export const handler = async (event, context) => {
 
   validateEnvironmentVariables([

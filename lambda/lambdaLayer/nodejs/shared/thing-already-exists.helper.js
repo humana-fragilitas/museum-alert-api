@@ -1,13 +1,20 @@
 
-import { IoTClient, DescribeThingCommand } from '@aws-sdk/client-iot';
+import {
+  IoTClient,
+  DescribeThingCommand
+} from '@aws-sdk/client-iot';
 
 
-export async function thingAlreadyExists(reg, thingName, company) {
+/**
+ * Helper function to check if a thing with the specified name
+ * and company exists in AWS IoT Core.
+ */
+export async function thingAlreadyExists(region, thingName, company) {
 
   try {
 
     const client = new IoTClient({
-      reg
+      region
     });
 
     const input = {
@@ -33,11 +40,7 @@ export async function thingAlreadyExists(reg, thingName, company) {
 
     } else {
 
-      console.error(
-        `[LAMBDA LAYER: thingAlreadyExists]: ` +
-        `failed to describe thing:`,
-        error
-      );
+      console.error('[LAMBDA LAYER: thingAlreadyExists]: failed to describe thing:', error);
 
       return null;
 

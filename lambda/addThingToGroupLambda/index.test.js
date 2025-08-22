@@ -1,5 +1,6 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
+
 import { 
   IoTClient, 
   DescribeThingCommand, 
@@ -8,19 +9,20 @@ import {
   AddThingToThingGroupCommand
 } from '@aws-sdk/client-iot';
 
-// Import the handler
 import { handler } from './index.mjs';
 
-// Create mock
+
 const iotMock = mockClient(IoTClient);
 
 describe('addThingToGroupLambda', () => {
+
   beforeEach(() => {
     iotMock.reset();
     jest.clearAllMocks();
   });
 
   test('should successfully add thing to group when thing has company attribute', async () => {
+
     const mockEvent = {
       thingName: 'test-device-001'
     };
@@ -48,9 +50,11 @@ describe('addThingToGroupLambda', () => {
     expect(iotMock.call(0).args[0].input).toEqual({
       thingName: 'test-device-001'
     });
+
   });
 
   test('should skip grouping when thing has no company attribute', async () => {
+
     const mockEvent = {
       thingName: 'test-device-002'
     };
@@ -69,14 +73,16 @@ describe('addThingToGroupLambda', () => {
     // Should only call DescribeThingCommand
     expect(iotMock.calls()).toHaveLength(1);
     expect(iotMock.call(0).args[0].constructor.name).toBe('DescribeThingCommand');
+
   });
 
   test('should handle missing thing name', async () => {
+
     const mockEvent = {};
-
     const result = await handler(mockEvent);
-
     expect(result.statusCode).toBe(500);
     expect(result.message).toContain('Could not extract thing name from event');
+    
   });
+
 });

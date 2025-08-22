@@ -10,6 +10,10 @@ import {
 } from '/opt/nodejs/shared/index.js'; 
 
 
+/**
+ * Lambda function to create a provisioning claim using a specified
+ * provisioning template in AWS IoT Core.
+ */
 export const handler = async (event) => {
 
   validateEnvironmentVariables([

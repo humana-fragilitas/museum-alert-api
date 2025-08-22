@@ -226,30 +226,6 @@ export class ApiGatewayStack extends BaseStack {
     // Things endpoints - EXACT match to production
     const thingsResource = this.api.root.addResource('things');
 
-    thingsResource.addMethod('GET',
-      new apigateway.LambdaIntegration(getThingsByCompanyFunction, {
-        proxy: true,
-      }),
-      {
-        authorizer: this.authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    new lambda.CfnPermission(this, 'InvokeGetThings', {
-      action: 'lambda:InvokeFunction',
-      functionName: getThingsByCompanyArn,
-      principal: 'apigateway.amazonaws.com',
-      sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things',
-        {
-          ApiId: this.api.restApiId,
-          StageName: this.config.stage,
-        }
-      )
-    });
-
-
     // Things with thingName parameter - EXACT match to production
     const thingNameResource = thingsResource.addResource('{thingName}');
 

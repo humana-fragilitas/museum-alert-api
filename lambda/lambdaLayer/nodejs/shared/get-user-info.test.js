@@ -1,12 +1,22 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
+
 import { getUserInfo } from './get-user-info.js';
 
+
 describe('getUserInfo', () => {
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('should return user info from event claims', () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -28,9 +38,11 @@ describe('getUserInfo', () => {
       'custom:Company': 'test-company',
       'cognito:username': 'testuser'
     });
+
   });
 
   test('should return null when requestContext is missing', () => {
+
     const mockEvent = {};
     
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -41,9 +53,11 @@ describe('getUserInfo', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Claims not found!');
     
     consoleSpy.mockRestore();
+
   });
 
   test('should return null when authorizer is missing', () => {
+
     const mockEvent = {
       requestContext: {}
     };
@@ -56,9 +70,11 @@ describe('getUserInfo', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Claims not found!');
     
     consoleSpy.mockRestore();
+
   });
 
   test('should return null when claims are missing', () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {}
@@ -68,9 +84,11 @@ describe('getUserInfo', () => {
     const result = getUserInfo(mockEvent);
     
     expect(result).toEqual({});
+
   });
 
   test('should handle empty claims object', () => {
+
     const mockEvent = {
       requestContext: {
         authorizer: {
@@ -82,9 +100,11 @@ describe('getUserInfo', () => {
     const result = getUserInfo(mockEvent);
     
     expect(result).toEqual({});
+
   });
 
   test('should handle malformed event structure and call console.error', () => {
+
     const mockEvent = {
       requestContext: null // This will cause an exception
     };
@@ -97,5 +117,7 @@ describe('getUserInfo', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Claims not found!');
     
     consoleSpy.mockRestore();
+
   });
+  
 });

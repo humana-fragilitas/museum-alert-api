@@ -1,22 +1,32 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
 
-// Mock jose module using __mocks__ directory
 jest.mock('jose');
 
-// Import mocked functions and the function under test
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  createRemoteJWKSet,
+  jwtVerify
+} from 'jose';
+
 import { getDecodedUserToken } from './decode-user-token.helper.js';
 
-// Cast to jest.MockedFunction for TypeScript-like usage
+
 const mockCreateRemoteJWKSet = createRemoteJWKSet;
 const mockJwtVerify = jwtVerify;
 
 describe('getDecodedUserToken', () => {
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('should return decoded payload when token is valid', async () => {
+
     const mockPayload = {
       sub: 'user-123',
       email: 'test@example.com',
@@ -36,9 +46,11 @@ describe('getDecodedUserToken', () => {
     expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', mockJwks, {
       algorithms: ['RS256']
     });
+
   });
 
   test('should return null when token verification fails', async () => {
+
     const mockJwks = {};
     mockCreateRemoteJWKSet.mockReturnValue(mockJwks);
     mockJwtVerify.mockRejectedValue(new Error('Invalid token'));
@@ -54,9 +66,11 @@ describe('getDecodedUserToken', () => {
     );
     
     consoleSpy.mockRestore();
+
   });
 
   test('should construct correct JWKS URI', async () => {
+
     const mockPayload = { sub: 'user-123' };
     const mockJwks = {};
     
@@ -68,9 +82,11 @@ describe('getDecodedUserToken', () => {
     expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(
       new URL('https://cognito-idp.eu-west-1.amazonaws.com/different-pool-id/.well-known/jwks.json')
     );
+
   });
 
   test('should log decoding message', async () => {
+
     const mockPayload = { sub: 'user-123' };
     const mockJwks = {};
     
@@ -86,5 +102,7 @@ describe('getDecodedUserToken', () => {
     );
     
     consoleSpy.mockRestore();
+
   });
+  
 });

@@ -7,17 +7,18 @@ import {
 } from '/opt/nodejs/shared/index.js'; 
 
 
+/**
+ * Lambda function to check if a thing exists in IoT Core.
+ */
 export const handler = async (event) => {
 
   validateEnvironmentVariables([
-    'AWS_REGION',
-    'USER_POOL_ID'
+    'AWS_REGION'
   ]);
 
   const thingName = event.pathParameters?.thingName;
   const authToken = event.headers?.Authorization;
-  const region = process.env.AWS_REGION; 
-  const userPoolId = process.env.USER_POOL_ID;
+  const region = process.env.AWS_REGION;
 
   if (!thingName) {
 

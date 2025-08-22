@@ -22,20 +22,15 @@ const cognitoClient = new CognitoIdentityProviderClient({
 const dynamoClient = new DynamoDBClient(
   { region: process.env.AWS_REGION }
 );
-
-// Environment variables
 const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
+
 /**
- * Post Confirmation Lambda Trigger
- * 
- * This function:
- * 1. Creates a new Company in DynamoDB with unique ID
- * 2. Updates user's custom:Company attribute with the Company ID
- * 3. Creates Cognito group with Company ID as name
- * 4. Adds user to the group
- * 
- * All operations are transactional - if any fail, everything is rolled back
+ * Lambda function to handle Cognito Post Confirmation trigger:
+ * 1. creates a new Company in DynamoDB with unique id;
+ * 2. updates user's custom:Company attribute with the Company id;
+ * 3. creates Cognito group with Company id as name;
+ * 4. adds user to the group.
  */
 export const handler = async (event) => {
 

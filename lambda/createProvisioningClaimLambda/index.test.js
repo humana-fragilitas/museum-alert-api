@@ -1,7 +1,19 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach
+} from '@jest/globals';
+
 import { mockClient } from 'aws-sdk-client-mock';
-import { IoTClient, CreateProvisioningClaimCommand } from '@aws-sdk/client-iot';
+import {
+  IoTClient,
+  CreateProvisioningClaimCommand
+} from '@aws-sdk/client-iot';
+
 import { handler } from './index.mjs';
+
 
 const iotMock = mockClient(IoTClient);
 
@@ -12,10 +24,17 @@ jest.mock('/opt/nodejs/shared/index.js', () => ({
   validateEnvironmentVariables: jest.fn()
 }));
 
-import { errorApiResponse, successApiResponse, validateEnvironmentVariables } from '/opt/nodejs/shared/index.js';
+import {
+  errorApiResponse,
+  successApiResponse,
+  validateEnvironmentVariables
+} from '/opt/nodejs/shared/index.js';
+
 
 describe('createProvisioningClaimLambda', () => {
+
   beforeEach(() => {
+
     iotMock.reset();
     jest.clearAllMocks();
     
@@ -31,9 +50,11 @@ describe('createProvisioningClaimLambda', () => {
       statusCode: 200,
       body: JSON.stringify({ data })
     }));
+
   });
 
   test('should successfully create provisioning claim', async () => {
+
     const mockEvent = {};
 
     const mockProvisioningClaim = {
@@ -66,9 +87,11 @@ describe('createProvisioningClaimLambda', () => {
       keyPair: mockProvisioningClaim.keyPair,
       expiration: '2024-01-01T00:00:00Z'
     });
+
   });
 
   test('should handle InternalFailureException', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Internal failure');
@@ -82,9 +105,11 @@ describe('createProvisioningClaimLambda', () => {
       500,
       'Internal failure'
     );
+
   });
 
   test('should handle InvalidRequestException', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Invalid request');
@@ -98,9 +123,11 @@ describe('createProvisioningClaimLambda', () => {
       400,
       'Invalid request'
     );
+
   });
 
   test('should handle ResourceNotFoundException', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Template not found');
@@ -114,9 +141,11 @@ describe('createProvisioningClaimLambda', () => {
       404,
       'Template not found'
     );
+
   });
 
   test('should handle ThrottlingException', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Too many requests');
@@ -130,9 +159,11 @@ describe('createProvisioningClaimLambda', () => {
       429,
       'Too many requests'
     );
+
   });
 
   test('should handle UnauthorizedException', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Unauthorized');
@@ -146,9 +177,11 @@ describe('createProvisioningClaimLambda', () => {
       403,
       'Unauthorized'
     );
+
   });
 
   test('should handle generic errors', async () => {
+
     const mockEvent = {};
 
     const error = new Error('Unknown error');
@@ -162,9 +195,11 @@ describe('createProvisioningClaimLambda', () => {
       500,
       'Unknown error'
     );
+
   });
 
   test('should use correct template name from environment', async () => {
+
     process.env.TEMPLATE_NAME = 'custom-template-name';
     
     const mockEvent = {};
@@ -182,5 +217,7 @@ describe('createProvisioningClaimLambda', () => {
     expect(iotMock.call(0).args[0].input).toEqual({
       templateName: 'custom-template-name'
     });
+
   });
+  
 });

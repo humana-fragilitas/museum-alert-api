@@ -4,8 +4,12 @@ import {
     CreateThingGroupCommand,
     DescribeThingGroupCommand,
     AddThingToThingGroupCommand
-} from "@aws-sdk/client-iot";
+} from '@aws-sdk/client-iot';
 
+
+/**
+ * Lambda function to add a thing to a group based on its "Company" attribute.
+ */
 const iotClient = new IoTClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event) => {
@@ -25,7 +29,7 @@ export const handler = async (event) => {
         const thingDetails = await getThingDetails(thingName);
         console.log('Thing details:', JSON.stringify(thingDetails, null, 2));
         
-        // Extract company from custom attributes
+        // Extract company from custom attribute
         const company = extractCompanyFromThing(thingDetails);
         if (!company) {
             console.log(`No company attribute found for thing ${thingName}, skipping grouping`);
@@ -65,6 +69,7 @@ export const handler = async (event) => {
  * Extract thing name from various event sources
  */
 function extractThingNameFromEvent(event) {
+
     console.log('Event structure:', JSON.stringify(event, null, 2));
     
     // IoT Rules Engine event format
@@ -108,12 +113,14 @@ function extractThingNameFromEvent(event) {
     }
     
     return null;
+
 }
 
 /**
  * Get thing details from IoT Core
  */
 async function getThingDetails(thingName) {
+
     const command = new DescribeThingCommand({
         thingName: thingName
     });
@@ -125,24 +132,21 @@ async function getThingDetails(thingName) {
         console.error(`Failed to describe thing ${thingName}:`, error);
         throw new Error(`Failed to get details for thing ${thingName}: ${error.message}`);
     }
+
 }
 
 /**
  * Extract company value from thing attributes
  */
 function extractCompanyFromThing(thingDetails) {
+
     // Check in attributes object
     if (thingDetails.attributes && thingDetails.attributes.Company) {
         return thingDetails.attributes.Company;
     }
     
-    // Check common variations
-    const possibleKeys = ['Company', 'company', 'COMPANY', 'companyId', 'CompanyId'];
-    
-    for (const key of possibleKeys) {
-        if (thingDetails.attributes && thingDetails.attributes[key]) {
-            return thingDetails.attributes[key];
-        }
+    if (thingDetails.attributes && thingDetails.attributes['Company']) {
+        return thingDetails.attributes['Company'];
     }
     
     return null;
@@ -152,6 +156,7 @@ function extractCompanyFromThing(thingDetails) {
  * Ensure thing group exists, create if it doesn't
  */
 async function ensureThingGroupExists(groupName, company) {
+
     try {
         // Try to describe the group first
         const describeCommand = new DescribeThingGroupCommand({
@@ -170,12 +175,14 @@ async function ensureThingGroupExists(groupName, company) {
             throw error;
         }
     }
+
 }
 
 /**
  * Create a new thing group
  */
 async function createThingGroup(groupName, company) {
+
     const command = new CreateThingGroupCommand({
         thingGroupName: groupName,
         thingGroupProperties: {
@@ -199,12 +206,14 @@ async function createThingGroup(groupName, company) {
         console.error(`Failed to create thing group ${groupName}:`, error);
         throw new Error(`Failed to create thing group ${groupName}: ${error.message}`);
     }
+
 }
 
 /**
  * Add thing to thing group
  */
 async function addThingToGroup(thingName, groupName) {
+
     const command = new AddThingToThingGroupCommand({
         thingGroupName: groupName,
         thingName: thingName
@@ -218,4 +227,5 @@ async function addThingToGroup(thingName, groupName) {
         console.error(`Failed to add ${thingName} to group ${groupName}:`, error);
         throw new Error(`Failed to add thing to group: ${error.message}`);
     }
+    
 }

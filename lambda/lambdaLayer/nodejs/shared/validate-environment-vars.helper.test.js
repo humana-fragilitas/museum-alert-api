@@ -1,7 +1,17 @@
-import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  jest,
+  beforeEach,
+  afterEach
+} from '@jest/globals';
+
 import { validateEnvironmentVariables } from './validate-environment-vars.helper.js';
 
+
 describe('validateEnvironmentVariables', () => {
+
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -65,4 +75,5 @@ describe('validateEnvironmentVariables', () => {
       validateEnvironmentVariables(['PRESENT_VAR', 'MISSING_VAR']);
     }).toThrow('[LAMBDA LAYER: validateEnvironmentVariables]: missing required environment variables: MISSING_VAR');
   });
+  
 });

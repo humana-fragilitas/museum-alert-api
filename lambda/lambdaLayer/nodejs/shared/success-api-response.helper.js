@@ -1,3 +1,6 @@
+/**
+ * Helper to format a successful API response
+ */
 export function successApiResponse(data,
                                    statusCode = 200) {
 
@@ -5,7 +8,7 @@ export function successApiResponse(data,
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': '*'
     },
     statusCode,
     body: JSON.stringify({

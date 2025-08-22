@@ -10,13 +10,16 @@ import {
 
 
 const iotClient = new IoTClient();
-// Cache the Data Plane client across Lambda invocations
 let iotDataClient;
 
+
+/**
+ * Lambda function handler for republishing device connection status
+ */
 export const handler = async (event) => {
 
   try {
-    // Initialize IoT Data Plane client if not already
+
     if (!iotDataClient) {
       const endpointCommand = new DescribeEndpointCommand({
         endpointType: 'iot:Data-ATS',
@@ -75,11 +78,13 @@ export const handler = async (event) => {
     };
 
   } catch (error) {
+
     console.error('Error processing event:', error);
     return {
       statusCode: 500,
       body: `Error: ${error.message}`,
     };
+    
   }
 
 };
