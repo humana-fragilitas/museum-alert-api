@@ -14,6 +14,7 @@ import {
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
 
+
 /**
  * Lambda function to delete a thing from AWS IoT Core.
  * Only deletes things that belong to the authenticated user's company.

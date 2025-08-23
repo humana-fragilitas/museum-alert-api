@@ -107,6 +107,7 @@ export class ApiGatewayStack extends BaseStack {
     const createProvisioningClaimArn = cdk.Fn.importValue(`${this.config.projectName}-createprovisioningclaim-arn-${this.config.stage}`);
     const getThingsByCompanyArn = cdk.Fn.importValue(`${this.config.projectName}-getthingsbycompany-arn-${this.config.stage}`);
     const checkThingExistsArn = cdk.Fn.importValue(`${this.config.projectName}-checkthingexists-arn-${this.config.stage}`);
+    const deleteThingArn = cdk.Fn.importValue(`${this.config.projectName}-deletething-arn-${this.config.stage}`);
     const attachIoTPolicyArn = cdk.Fn.importValue(`${this.config.projectName}-attachiotpolicy-arn-${this.config.stage}`);
 
     // Get Lambda function references
@@ -132,6 +133,11 @@ export class ApiGatewayStack extends BaseStack {
 
     const checkThingExistsFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedCheckThingExists', {
       functionArn: checkThingExistsArn,
+      sameEnvironment: true,
+    });
+
+    const deleteThingFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedDeleteThing', {
+      functionArn: deleteThingArn,
       sameEnvironment: true,
     });
 
@@ -245,6 +251,33 @@ export class ApiGatewayStack extends BaseStack {
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
         'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things/{thingName}',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
+    thingNameResource.addMethod('DELETE',
+      new apigateway.LambdaIntegration(deleteThingFunction, {
+        proxy: true,
+        contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
+      }),
+      {
+        authorizer: this.authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestModels: {
+          'application/json': apigateway.Model.EMPTY_MODEL,
+        },
+      }
+    );
+
+    new lambda.CfnPermission(this, 'InvokeDeleteThingByName', {
+      action: 'lambda:InvokeFunction',
+      functionName: deleteThingArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/DELETE/things/{thingName}',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,

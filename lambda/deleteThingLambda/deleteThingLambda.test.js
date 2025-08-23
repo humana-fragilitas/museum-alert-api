@@ -1,11 +1,4 @@
-import {
-  describe,
-  test,
-  expect,
-  jest,
-  beforeEach
-} from '@jest/globals';
-
+import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import {
   IoTClient,
@@ -19,7 +12,7 @@ import {
 
 import { handler } from './index.mjs';
 
-
+// Create mocks
 const iotMock = mockClient(IoTClient);
 
 // Mock the lambda layer helpers
