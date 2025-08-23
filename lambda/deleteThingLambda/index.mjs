@@ -5,10 +5,7 @@ import {
   ListThingPrincipalsCommand,
   DetachThingPrincipalCommand,
   DeleteCertificateCommand,
-  UpdateCertificateCommand,
-  ListTargetsForPolicyCommand,
-  ListPoliciesCommand,
-  DetachPolicyCommand
+  UpdateCertificateCommand
 } from '@aws-sdk/client-iot';
 
 import {
@@ -95,49 +92,7 @@ export const handler = async (event) => {
         const certificateId = principal.split('/').pop();
         
         try {
-          // 4a. Get policies attached to this certificate
-          // Since ListPrincipalPoliciesCommand is deprecated, we need to:
-          // 1. List all policies
-          // 2. For each policy, check if our principal is a target
-          const listPoliciesCommand = new ListPoliciesCommand({});
-          const allPoliciesResponse = await iotClient.send(listPoliciesCommand);
-          
-          const attachedPolicies = [];
-          
-          if (allPoliciesResponse.policies && allPoliciesResponse.policies.length > 0) {
-            // Check each policy to see if our principal is attached
-            for (const policy of allPoliciesResponse.policies) {
-              try {
-                const listTargetsCommand = new ListTargetsForPolicyCommand({
-                  policyName: policy.policyName
-                });
-                const targetsResponse = await iotClient.send(listTargetsCommand);
-                
-                if (targetsResponse.targets && targetsResponse.targets.includes(principal)) {
-                  attachedPolicies.push(policy);
-                }
-              } catch (targetError) {
-                // If we can't check targets for a policy, skip it
-                console.warn(`Could not check targets for policy ${policy.policyName}:`, targetError.message);
-              }
-            }
-          }
-          
-          // 4b. Detach all policies from the certificate
-          if (attachedPolicies.length > 0) {
-            console.log(`Detaching ${attachedPolicies.length} policies from certificate`);
-            
-            for (const policy of attachedPolicies) {
-              const detachPolicyCommand = new DetachPolicyCommand({
-                policyName: policy.policyName,
-                target: principal
-              });
-              await iotClient.send(detachPolicyCommand);
-              console.log(`Detached policy: ${policy.policyName}`);
-            }
-          }
-          
-          // 4c. Detach certificate from thing
+          // 4a. Detach certificate from thing first
           const detachPrincipalCommand = new DetachThingPrincipalCommand({
             thingName,
             principal
@@ -145,14 +100,15 @@ export const handler = async (event) => {
           await iotClient.send(detachPrincipalCommand);
           console.log(`Detached certificate from thing: ${certificateId}`);
           
-          // 4d. Set certificate to INACTIVE before deletion
+          // 4b. Set certificate to INACTIVE before deletion
           const updateCertCommand = new UpdateCertificateCommand({
             certificateId,
             newStatus: 'INACTIVE'
           });
           await iotClient.send(updateCertCommand);
           
-          // 4e. Delete the certificate
+          // 4c. Delete the certificate with forceDelete
+          // This will automatically detach any remaining policies
           const deleteCertCommand = new DeleteCertificateCommand({
             certificateId,
             forceDelete: true
