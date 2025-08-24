@@ -1,4 +1,7 @@
-// Helper function to validate required environment variables at startup
+/**
+ * Helper function to validate required environment variables at
+ * lambda invocation time.
+ */
 export function validateEnvironmentVariables(requiredVariables = []) {
 
     if (!requiredVariables || !requiredVariables.length) return;

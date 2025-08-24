@@ -2,7 +2,6 @@ import {
   DynamoDBClient,
   GetItemCommand
 } from '@aws-sdk/client-dynamodb';
-
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 import { 
@@ -12,24 +11,19 @@ import {
 } from '/opt/nodejs/shared/index.js';
 
 
-
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
 const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
- * Get Company Lambda Function
- * 
- * Retrieves the authenticated user's company data
- * Company ID is extracted from user's JWT token (custom:Company claim)
+ * Retrieves the authenticated user's Company data;
+ * Company id is extracted from session JWT token (custom:Company property).
  */
 export const handler = async (event) => {
   
   validateEnvironmentVariables([
     'COMPANIES_TABLE'
   ]);
-
-  const stage = event.requestContext?.stage;
 
   const userClaims = event.requestContext?.authorizer?.claims;
   const companyId = userClaims?.['custom:Company'];
@@ -40,7 +34,6 @@ export const handler = async (event) => {
     console.error('Missing user claims in request context; exiting...');
 
     return errorApiResponse(
-      stage,
       'Missing or invalid authentication context',
       401
     );
@@ -50,7 +43,6 @@ export const handler = async (event) => {
   if (!companyId) {
 
     return errorApiResponse(
-      stage,
       'User has no company associated with their account',
       404
     );
@@ -63,7 +55,6 @@ export const handler = async (event) => {
     
     if (!company) {
       return errorApiResponse(
-        stage,
         'Company not found',
         404
       );
@@ -81,7 +72,6 @@ export const handler = async (event) => {
       );
 
       return errorApiResponse(
-        stage,
         'User does not belong to this company',
         403
       );
@@ -103,16 +93,13 @@ export const handler = async (event) => {
       `for user: ${userEmail}`
     );
 
-    return successApiResponse(stage, {
-      ...responseData
-    });
+    return successApiResponse(responseData);
 
   } catch (error) {
 
     console.error('Error retrieving company:', error);
     
     return errorApiResponse(
-      stage,
       'Failed to retrieve company data',
       500,
       { error: error.message }

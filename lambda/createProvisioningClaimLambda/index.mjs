@@ -10,6 +10,10 @@ import {
 } from '/opt/nodejs/shared/index.js'; 
 
 
+/**
+ * Lambda function to create a provisioning claim using a specified
+ * provisioning template in AWS IoT Core.
+ */
 export const handler = async (event) => {
 
   validateEnvironmentVariables([
@@ -17,19 +21,17 @@ export const handler = async (event) => {
     'TEMPLATE_NAME'
   ]);
   
-  const stage = event.requestContext?.stage;
   const region = process.env.AWS_REGION;
   const templateName = process.env.TEMPLATE_NAME;
   
   const client = new IoTClient({ region });
-
   const command = new CreateProvisioningClaimCommand({ templateName });
 
   try {
 
       const data = await client.send(command);
 
-      return successApiResponse(stage, {
+      return successApiResponse({
         message: 'Successfully created provisioning claim',
         certificateId: data.certificateId,
         certificatePem: data.certificatePem,
@@ -42,8 +44,7 @@ export const handler = async (event) => {
     if (error.name === 'InternalFailureException') {
 
       return errorApiResponse(
-        stage,
-        `An internal failure prevented the provisionig claim ` +
+        `An internal failure prevented the provisioning claim ` +
         `from being created`,
         500,
         error.message
@@ -52,8 +53,7 @@ export const handler = async (event) => {
     } else if (error.name === 'InvalidRequestException') {
 
       return errorApiResponse(
-        stage,
-        'An invalid request prevented the provisionig claim from being created',
+        'An invalid request prevented the provisioning claim from being created',
         400, 
         error.message
       );
@@ -61,8 +61,7 @@ export const handler = async (event) => {
     } else if (error.name === 'ResourceNotFoundException') { 
 
       return errorApiResponse(
-        stage,
-        `A non existing required resource prevented the provisionig claim ` +
+        `A non existing required resource prevented the provisioning claim ` +
         `from being created`,
         404,
         error.message
@@ -71,8 +70,7 @@ export const handler = async (event) => {
     } else if (error.name === 'ServiceUnavailableException') {
 
       return errorApiResponse(
-        stage,
-        `Service unavailability prevented the provisionig claim ` +
+        `Service unavailability prevented the provisioning claim ` +
         `from being created`,
         503,
         error.message
@@ -81,27 +79,24 @@ export const handler = async (event) => {
     } else if (error.name === 'ThrottlingException') {
 
       return errorApiResponse(
-        stage,
-        'Service throttling prevented the provisionig claim from being created',
-        400,
+        'Service throttling prevented the provisioning claim from being created',
+        429,
         error.message
       );
 
     } else if (error.name === 'UnauthorizedException') {
       
       return errorApiResponse(
-        stage,
-        `Unauthorized access prevented the provisionig claim ` +
+        `Unauthorized access prevented the provisioning claim ` +
         `from being created`,
-        401,
+        403,
         error.message
       );
 
     } else {
 
       return errorApiResponse(
-        stage,
-        `An unexpected error prevented the provisionig claim ` +
+        `An unexpected error prevented the provisioning claim ` +
         `from being created`,
         500,
         error.message

@@ -107,8 +107,8 @@ export class ApiGatewayStack extends BaseStack {
     const createProvisioningClaimArn = cdk.Fn.importValue(`${this.config.projectName}-createprovisioningclaim-arn-${this.config.stage}`);
     const getThingsByCompanyArn = cdk.Fn.importValue(`${this.config.projectName}-getthingsbycompany-arn-${this.config.stage}`);
     const checkThingExistsArn = cdk.Fn.importValue(`${this.config.projectName}-checkthingexists-arn-${this.config.stage}`);
+    const deleteThingArn = cdk.Fn.importValue(`${this.config.projectName}-deletething-arn-${this.config.stage}`);
     const attachIoTPolicyArn = cdk.Fn.importValue(`${this.config.projectName}-attachiotpolicy-arn-${this.config.stage}`);
-    const deleteUserLambdaArn = cdk.Fn.importValue(`${this.config.projectName}-deleteuserlambda-arn-${this.config.stage}`);
 
     // Get Lambda function references
     const getCompanyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedGetCompany', {
@@ -136,13 +136,13 @@ export class ApiGatewayStack extends BaseStack {
       sameEnvironment: true,
     });
 
-    const attachIoTPolicyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedAttachIoTPolicy', {
-      functionArn: attachIoTPolicyArn,
+    const deleteThingFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedDeleteThing', {
+      functionArn: deleteThingArn,
       sameEnvironment: true,
     });
 
-    const deleteUserLambdaFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedDeleteUserLambda', {
-      functionArn: deleteUserLambdaArn,
+    const attachIoTPolicyFunction = lambda.Function.fromFunctionAttributes(this, 'ImportedAttachIoTPolicy', {
+      functionArn: attachIoTPolicyArn,
       sameEnvironment: true,
     });
 
@@ -232,30 +232,6 @@ export class ApiGatewayStack extends BaseStack {
     // Things endpoints - EXACT match to production
     const thingsResource = this.api.root.addResource('things');
 
-    thingsResource.addMethod('GET',
-      new apigateway.LambdaIntegration(getThingsByCompanyFunction, {
-        proxy: true,
-      }),
-      {
-        authorizer: this.authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    new lambda.CfnPermission(this, 'InvokeGetThings', {
-      action: 'lambda:InvokeFunction',
-      functionName: getThingsByCompanyArn,
-      principal: 'apigateway.amazonaws.com',
-      sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things',
-        {
-          ApiId: this.api.restApiId,
-          StageName: this.config.stage,
-        }
-      )
-    });
-
-
     // Things with thingName parameter - EXACT match to production
     const thingNameResource = thingsResource.addResource('{thingName}');
 
@@ -275,6 +251,33 @@ export class ApiGatewayStack extends BaseStack {
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
         'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/GET/things/{thingName}',
+        {
+          ApiId: this.api.restApiId,
+          StageName: this.config.stage,
+        }
+      )
+    });
+
+    thingNameResource.addMethod('DELETE',
+      new apigateway.LambdaIntegration(deleteThingFunction, {
+        proxy: true,
+        contentHandling: apigateway.ContentHandling.CONVERT_TO_TEXT,
+      }),
+      {
+        authorizer: this.authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestModels: {
+          'application/json': apigateway.Model.EMPTY_MODEL,
+        },
+      }
+    );
+
+    new lambda.CfnPermission(this, 'InvokeDeleteThingByName', {
+      action: 'lambda:InvokeFunction',
+      functionName: deleteThingArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn: cdk.Fn.sub(
+        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/DELETE/things/{thingName}',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,
@@ -305,32 +308,6 @@ export class ApiGatewayStack extends BaseStack {
       principal: 'apigateway.amazonaws.com',
       sourceArn: cdk.Fn.sub(
         'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/POST/user-policy',
-        {
-          ApiId: this.api.restApiId,
-          StageName: this.config.stage,
-        }
-      )
-    });
-
-    // User management endpoints
-    const userResource = this.api.root.addResource('user');
-
-    userResource.addMethod('DELETE',
-      new apigateway.LambdaIntegration(deleteUserLambdaFunction, {
-        proxy: true,
-      }),
-      {
-        authorizer: this.authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    new lambda.CfnPermission(this, 'InvokeDeleteUser', {
-      action: 'lambda:InvokeFunction',
-      functionName: deleteUserLambdaArn,
-      principal: 'apigateway.amazonaws.com',
-      sourceArn: cdk.Fn.sub(
-        'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/${StageName}/DELETE/user',
         {
           ApiId: this.api.restApiId,
           StageName: this.config.stage,

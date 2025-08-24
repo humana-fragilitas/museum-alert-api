@@ -1,16 +1,14 @@
-import { hasCors } from './has-cors.helper.js';
-
-export function successApiResponse(environment,
-                                   data,
+/**
+ * Helper to format a successful API response
+ */
+export function successApiResponse(data,
                                    statusCode = 200) {
 
   return {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      ...(hasCors(environment) && {
-        'Access-Control-Allow-Origin': '*'
-      }),
+      'Access-Control-Allow-Origin': '*'
     },
     statusCode,
     body: JSON.stringify({

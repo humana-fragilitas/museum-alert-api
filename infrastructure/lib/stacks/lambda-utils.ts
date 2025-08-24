@@ -41,6 +41,7 @@ export function createLambdaFunction(props: CreateLambdaProps): lambda.Function 
         '.DS_Store',
         'libraries',
         '*.zip',
+        '*.test.js',
         'test',
         'tests',
         '__pycache__',

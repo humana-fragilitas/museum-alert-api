@@ -3,7 +3,6 @@ import {
   GetItemCommand,
   UpdateItemCommand
 } from '@aws-sdk/client-dynamodb';
-
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 import { 
@@ -17,30 +16,24 @@ const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const COMPANIES_TABLE = process.env.COMPANIES_TABLE;
 
 /**
- * Update Company Lambda Function
- * 
- * Updates company data with partial updates - only provided fields are updated
- * Supports: companyName, status, and other company-level attributes
- * Does NOT update members array (separate endpoint needed for that)
+ * Allows to write company data with partial updates,
+ * supporting "companyName" and "status" fields;
+ * does NOT update members array (separate endpoint needed for that).
  */
 export const handler = async (event) => {
   
   validateEnvironmentVariables(['COMPANIES_TABLE']);
-
-  const stage = event.requestContext?.stage;
 
   const userClaims = event.requestContext?.authorizer?.claims;
   const companyId = userClaims?.['custom:Company'];
   
   if (!companyId) {
     return errorApiResponse(
-      stage,
       'User has no company ID associated with their account',
       404
     );
   }
 
-  // Parse request body
   let updateData;
 
   try {
@@ -50,7 +43,6 @@ export const handler = async (event) => {
   } catch {
 
     return errorApiResponse(
-      stage,
       'Invalid JSON in request body',
       400
     );
@@ -65,7 +57,6 @@ export const handler = async (event) => {
   if (providedFields.length === 0) {
 
     return errorApiResponse(
-      stage,
       `No valid fields provided. Allowed fields: ${allowedFields.join(', ')}`,
       400
     );
@@ -78,7 +69,6 @@ export const handler = async (event) => {
   if (validationError) {
 
     return errorApiResponse(
-      stage,
       validationError,
       400,
     );
@@ -91,13 +81,11 @@ export const handler = async (event) => {
 
     if (!existingCompany) {
       return errorApiResponse(
-        stage,
         'Company not found',
         404
       );
     }
 
-    // Build dynamic update expression
     const updateExpression = buildUpdateExpression(updateData);
     const expressionAttributeNames = buildExpressionAttributeNames(
       updateData
@@ -127,7 +115,7 @@ export const handler = async (event) => {
 
     console.log(`✅ Successfully updated company: ${companyId}`);
 
-    return successApiResponse(stage, {
+    return successApiResponse({
       message: 'Company updated successfully',
       company: updatedCompany,
       updatedFields: providedFields
@@ -137,7 +125,6 @@ export const handler = async (event) => {
     
     if (error.name === 'ConditionalCheckFailedException') {
       return errorApiResponse(
-        stage,
         'Company not found',
         404
       );
@@ -146,7 +133,6 @@ export const handler = async (event) => {
     console.error('Error updating company:', error);
     
     return errorApiResponse(
-      stage,
       'Failed to update company',
       500,
       error.message
@@ -157,7 +143,7 @@ export const handler = async (event) => {
 };
 
 /**
- * Get company by ID
+ * Get company by id from DynamoDB
  */
 const getCompanyById = async (companyId) => {
 
@@ -195,7 +181,7 @@ const validateUpdateFields = (updateData) => {
     if (updateData.companyName.trim().length < 3) {
       return 'Company name must be at least 3 characters';
     }
-    if (updateData.companyName.trim().length > 96) {
+    if (updateData.companyName.trim().length > 50) {
       return 'Company name must not exceed 96 characters';
     }
   }
@@ -208,7 +194,7 @@ const validateUpdateFields = (updateData) => {
     }
   }
 
-  return null; // No validation errors
+  return null;
 
 };
 
@@ -273,91 +259,3 @@ const buildExpressionAttributeValues = (updateData) => {
   return values;
 
 };
-
-// ===== USAGE EXAMPLES =====
-
-/*
-API Gateway Integration:
-
-PUT /companies/{companyId}
-
-Path Parameters:
-- companyId: UUID of the company to update
-
-Request Body Examples:
-
-1. Update company name only:
-{
-  "companyName": "New Company Name Ltd"
-}
-
-2. Update status only:
-{
-  "status": "inactive"
-}
-
-3. Update multiple fields:
-{
-  "companyName": "Updated Company Name",
-  "status": "active"
-}
-
-Response Example:
-{
-  "statusCode": 200,
-  "body": {
-    "message": "Company updated successfully",
-    "company": {
-      "companyId": "123e4567-e89b-12d3-a456-426614174000",
-      "companyName": "New Company Name Ltd",
-      "status": "active",
-      "createdAt": "2024-01-15T10:30:00.000Z",
-      "updatedAt": "2024-06-12T14:22:15.000Z",
-      "ownerEmail": "owner@company.com",
-      "ownerUsername": "owner@company.com",
-      "memberCount": 3,
-      "members": [...]
-    },
-    "updatedFields": ["companyName"]
-  }
-}
-
-Error Response Examples:
-
-1. Company not found:
-{
-  "statusCode": 404,
-  "body": {
-    "error": "COMPANY_NOT_FOUND",
-    "message": "Company not found"
-  }
-}
-
-2. Validation error:
-{
-  "statusCode": 400,
-  "body": {
-    "error": "VALIDATION_ERROR", 
-    "message": "Company name must be at least 3 characters"
-  }
-}
-
-Required Environment Variables:
-- COMPANIES_TABLE: DynamoDB table name
-- AWS_REGION: AWS region
-
-Required IAM Permissions:
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:UpdateItem",
-        "dynamodb:GetItem"
-      ],
-      "Resource": "arn:aws:dynamodb:*:*:table/companies"
-    }
-  ]
-}
-*/

@@ -23,7 +23,6 @@ export class LambdaStack extends BaseStack {
     this.sharedLayer = props.sharedLayer;
     this.createCompanyFunctions();
     this.createIoTFunctions();
-    this.createCognitoFunctions();
     this.createDeviceManagementFunctions();
     this.createOutputs();
     this.applyStandardTags(this);
@@ -232,26 +231,6 @@ export class LambdaStack extends BaseStack {
 
   }
 
-  private createCognitoFunctions(): void {
-
-    const config = {
-      lambda: {
-        timeout: 10,
-        memorySize: 512,
-      },
-    };
-
-    // TO DO: this is unused: to be removed!
-    this.functions.deleteUserLambda = createLambdaFunction({
-      scope: this,
-      id: 'DeleteUserLambdaFunction',
-      functionName: 'deleteUserLambda',
-      assetPath: './lambda/deleteUserLambda',
-      config
-    });
-
-  }
-
   private createDeviceManagementFunctions(): void {
 
     const config = {
@@ -262,30 +241,6 @@ export class LambdaStack extends BaseStack {
     };
 
     const userPoolId = cdk.Fn.importValue(`${this.config.projectName}-user-pool-id-${this.config.stage}`);
-
-    this.functions.getThingsByCompany = createLambdaFunction({
-      scope: this,
-      id: 'GetThingsByCompanyFunction',
-      functionName: 'getThingsByCompany',
-      assetPath: './lambda/getThingsByCompanyLambda',
-      environment: { USER_POOL_ID: userPoolId },
-      sharedLayer: this.sharedLayer,
-      config
-    });
-
-    this.functions.getThingsByCompany.role?.attachInlinePolicy(
-      new iam.Policy(this, 'getThingsByCompanyLambdaPolicy', {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ['iot:ListThingsInThingGroup'],
-            resources: [
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thinggroup/Company-Group-*`
-            ]
-          })
-        ]
-      })
-    );
 
     this.functions.preProvisioningHook = createLambdaFunction({
       scope: this,
@@ -329,6 +284,40 @@ export class LambdaStack extends BaseStack {
             effect: iam.Effect.ALLOW,
             actions: ['iot:DescribeThing'],
             resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`]
+          })
+        ]
+      })
+    );
+
+    this.functions.deleteThing = createLambdaFunction({
+      scope: this,
+      id: 'DeleteThingFunction',
+      functionName: 'deleteThing',
+      assetPath: './lambda/deleteThingLambda',
+      sharedLayer: this.sharedLayer,
+      config
+    });
+
+    this.functions.deleteThing.role?.attachInlinePolicy(
+      new iam.Policy(this, 'deleteThingLambdaPolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['iot:DescribeThing', 'iot:DeleteThing'],
+            resources: [`arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`]
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'iot:ListThingPrincipals',
+              'iot:DetachThingPrincipal',
+              'iot:UpdateCertificate',
+              'iot:DeleteCertificate'
+            ],
+            resources: [
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:cert/*`
+            ]
           })
         ]
       })

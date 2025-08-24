@@ -1,6 +1,12 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  createRemoteJWKSet,
+  jwtVerify
+} from 'jose';
 
 
+/**
+ * Decodes a JWT token from a Cognito User Pool.
+ */
 export async function getDecodedUserToken(reg, userPoolId, token) {
 
   const JWKS_URI = `https://cognito-idp.${reg}.` +
@@ -9,10 +15,7 @@ export async function getDecodedUserToken(reg, userPoolId, token) {
 
   try {
 
-    console.log(
-      `[LAMBDA LAYER: getDecodedUserToken]: ` +
-      `decoding user JWT token...`
-    );
+    console.log('[LAMBDA LAYER: getDecodedUserToken]: decoding user JWT token...');
 
     const { payload } = await jwtVerify(token, jwks, {
       algorithms: ['RS256'],
@@ -21,11 +24,7 @@ export async function getDecodedUserToken(reg, userPoolId, token) {
     return payload;
   } catch (err) {
 
-    console.error(
-      `[LAMBDA LAYER: getDecodedUserToken]: ` +
-      `JWT token decoding failed:`,
-      err
-    );
+    console.error('[LAMBDA LAYER: getDecodedUserToken]: JWT token decoding failed:', err);
 
     return null;
   }

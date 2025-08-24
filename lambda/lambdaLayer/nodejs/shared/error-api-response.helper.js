@@ -1,8 +1,7 @@
-import { hasCors } from './has-cors.helper.js';
-
-
-export function errorApiResponse(environment,
-                                 message,
+/**
+ * Helper to format an error API response
+ */
+export function errorApiResponse(message,
                                  statusCode,
                                  details = null) {
 
@@ -21,12 +20,10 @@ export function errorApiResponse(environment,
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      ...(hasCors(environment) && {
-        'Access-Control-Allow-Origin': '*'
-      }),
+      'Access-Control-Allow-Origin': '*'
     },
     statusCode,
     body: JSON.stringify(errorBody)
   };
 
-};
+}
