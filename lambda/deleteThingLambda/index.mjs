@@ -5,7 +5,10 @@ import {
   ListThingPrincipalsCommand,
   DetachThingPrincipalCommand,
   DeleteCertificateCommand,
-  UpdateCertificateCommand
+  UpdateCertificateCommand,
+  ListAttachedPoliciesCommand,
+  DetachPolicyCommand,
+  DeletePolicyCommand
 } from '@aws-sdk/client-iot';
 
 import {
@@ -13,6 +16,70 @@ import {
   successApiResponse,
   validateEnvironmentVariables
 } from '/opt/nodejs/shared/index.js';
+
+
+/**
+ * Helper function to find and delete policies attached to a certificate
+ * @param {IoTClient} iotClient - The IoT client instance
+ * @param {string} certificateArn - The ARN of the certificate
+ */
+async function detachAndDeletePoliciesForCertificate(iotClient, certificateArn) {
+  try {
+    const certificateId = certificateArn.split('/').pop();
+    
+    // Get all policies attached to this certificate
+    const listPoliciesCommand = new ListAttachedPoliciesCommand({
+      target: certificateArn
+    });
+    const policiesResponse = await iotClient.send(listPoliciesCommand);
+    
+    if (policiesResponse.policies && policiesResponse.policies.length > 0) {
+      console.log(`Found ${policiesResponse.policies.length} policies attached to certificate ${certificateId}`);
+      
+      for (const policy of policiesResponse.policies) {
+        const policyName = policy.policyName;
+        
+        try {
+          // Detach the policy from the certificate
+          const detachPolicyCommand = new DetachPolicyCommand({
+            policyName,
+            target: certificateArn
+          });
+          await iotClient.send(detachPolicyCommand);
+          console.log(`Detached policy ${policyName} from certificate ${certificateId}`);
+          
+          // Delete the policy (this will only succeed if no other targets are attached)
+          try {
+            const deletePolicyCommand = new DeletePolicyCommand({
+              policyName
+            });
+            await iotClient.send(deletePolicyCommand);
+            console.log(`Deleted policy ${policyName}`);
+          } catch (deleteError) {
+            if (deleteError.name === 'DeleteConflictException') {
+              console.log(`Policy ${policyName} has other targets attached, not deleting`);
+            } else {
+              console.error(`Error deleting policy ${policyName}:`, deleteError);
+            }
+          }
+          
+        } catch (error) {
+          console.error(`Error handling policy ${policyName}:`, error);
+          // Don't fail the whole operation for individual policy issues
+        }
+      }
+    } else {
+      console.log(`No policies found attached to certificate ${certificateId}`);
+    }
+  } catch (error) {
+    if (error.name === 'ResourceNotFoundException') {
+      console.log(`Certificate ${certificateArn} not found for policy lookup`);
+    } else {
+      console.error('Error in detachAndDeletePoliciesForCertificate:', error);
+    }
+    // Don't fail the whole operation for policy issues
+  }
+}
 
 
 /**
@@ -85,7 +152,7 @@ export const handler = async (event) => {
     if (principalsResponse.principals && principalsResponse.principals.length > 0) {
       console.log(`Found ${principalsResponse.principals.length} principals attached to thing`);
       
-      // 4. For each certificate, detach policies and delete the certificate
+      // 4. For each certificate, detach from thing and delete with forced cleanup
       for (const principal of principalsResponse.principals) {
         console.log(`Processing principal: ${principal}`);
         
@@ -101,21 +168,24 @@ export const handler = async (event) => {
           await iotClient.send(detachPrincipalCommand);
           console.log(`Detached certificate from thing: ${certificateId}`);
           
-          // 4b. Set certificate to INACTIVE before deletion
+          // 4b. Find and detach/delete policies attached to this certificate
+          await detachAndDeletePoliciesForCertificate(iotClient, principal);
+          
+          // 4c. Set certificate to INACTIVE before deletion
           const updateCertCommand = new UpdateCertificateCommand({
             certificateId,
             newStatus: 'INACTIVE'
           });
           await iotClient.send(updateCertCommand);
+          console.log(`Set certificate to INACTIVE: ${certificateId}`);
           
-          // 4c. Delete the certificate with forceDelete
-          // This will automatically detach any remaining policies
+          // 4d. Delete the certificate with forceDelete as additional safeguard
           const deleteCertCommand = new DeleteCertificateCommand({
             certificateId,
             forceDelete: true
           });
           await iotClient.send(deleteCertCommand);
-          console.log(`Deleted certificate: ${certificateId}`);
+          console.log(`Deleted certificate with forced cleanup: ${certificateId}`);
           
         } catch (error) {
           console.error(`Error processing certificate ${certificateId}:`, error);
