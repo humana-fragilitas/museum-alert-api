@@ -14,7 +14,10 @@ import {
   ListThingPrincipalsCommand,
   DetachThingPrincipalCommand,
   DeleteCertificateCommand,
-  UpdateCertificateCommand
+  UpdateCertificateCommand,
+  ListAttachedPoliciesCommand,
+  DetachPolicyCommand,
+  DeletePolicyCommand
 } from '@aws-sdk/client-iot';
 
 import { handler } from './index.mjs';
@@ -82,6 +85,14 @@ describe('deleteThingLambda', () => {
     iotMock.on(DescribeThingCommand).resolves(mockThingData);
     iotMock.on(ListThingPrincipalsCommand).resolves({ principals: mockPrincipals });
     iotMock.on(DetachThingPrincipalCommand).resolves({});
+    // Mock policy management commands - simulate finding policies attached to certificates
+    iotMock.on(ListAttachedPoliciesCommand).resolves({ 
+      policies: [
+        { policyName: 'device-policy-certificate-id-1' }
+      ]
+    });
+    iotMock.on(DetachPolicyCommand).resolves({});
+    iotMock.on(DeletePolicyCommand).resolves({});
     iotMock.on(UpdateCertificateCommand).resolves({});
     iotMock.on(DeleteCertificateCommand).resolves({});
     iotMock.on(DeleteThingCommand).resolves({});
@@ -95,6 +106,11 @@ describe('deleteThingLambda', () => {
     expect(iotMock.commandCalls(UpdateCertificateCommand)).toHaveLength(2);
     expect(iotMock.commandCalls(DeleteCertificateCommand)).toHaveLength(2);
     expect(iotMock.commandCalls(DeleteThingCommand)).toHaveLength(1);
+    
+    // Verify policy management calls were made
+    expect(iotMock.commandCalls(ListAttachedPoliciesCommand)).toHaveLength(2); // One for each certificate
+    expect(iotMock.commandCalls(DetachPolicyCommand)).toHaveLength(2); // One policy per certificate in our mock
+    expect(iotMock.commandCalls(DeletePolicyCommand)).toHaveLength(2); // One policy per certificate in our mock
 
     // Verify the calls were made with correct parameters
     expect(iotMock.commandCalls(DescribeThingCommand)[0].args[0].input).toEqual({
@@ -312,6 +328,10 @@ describe('deleteThingLambda', () => {
     iotMock.on(DescribeThingCommand).resolves(mockThingData);
     iotMock.on(ListThingPrincipalsCommand).resolves({ principals: mockPrincipals });
     iotMock.on(DetachThingPrincipalCommand).resolves({});
+    // Mock policy management commands
+    iotMock.on(ListAttachedPoliciesCommand).resolves({ policies: [{ policyName: 'test-policy' }] });
+    iotMock.on(DetachPolicyCommand).resolves({});
+    iotMock.on(DeletePolicyCommand).resolves({});
     iotMock.on(UpdateCertificateCommand).resolves({});
     
     const deleteError = new Error('Certificate deletion failed');

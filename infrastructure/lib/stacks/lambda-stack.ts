@@ -312,11 +312,15 @@ export class LambdaStack extends BaseStack {
               'iot:ListThingPrincipals',
               'iot:DetachThingPrincipal',
               'iot:UpdateCertificate',
-              'iot:DeleteCertificate'
+              'iot:DeleteCertificate',
+              'iot:ListAttachedPolicies',
+              'iot:DetachPolicy',
+              'iot:DeletePolicy'
             ],
             resources: [
               `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:thing/*`,
-              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:cert/*`
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:cert/*`,
+              `arn:aws:iot:${this.config.region}:${cdk.Aws.ACCOUNT_ID}:policy/*`
             ]
           })
         ]
