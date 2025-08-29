@@ -29,9 +29,7 @@ export class ApiGatewayStack extends BaseStack {
     // Creates a CloudWatch Logs group for access logs
     const logGroup = new logs.LogGroup(this, 'ApiAccessLogs', {
       retention: logs.RetentionDays.ONE_DAY,
-      removalPolicy: this.config.stage === 'prod'
-        ? cdk.RemovalPolicy.RETAIN
-        : cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
     // Creates IAM role explicitly

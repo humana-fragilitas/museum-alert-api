@@ -45,7 +45,7 @@ This project creates a complete AWS infrastructure stack comprising:
 3. **Generate Access Keys**:
    - click on the username → "Security credentials";
    - click "Create access key" → Choose "Command Line Interface (CLI)";
-   - **Save the credentials securely** - you won't see the secret key again!
+   - **save the credentials securely** - you won't see the secret key again!
 
 #### 2. Install and Configure AWS CLI
 
