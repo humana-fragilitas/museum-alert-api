@@ -4,6 +4,13 @@
 
 AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud services for device management, user authentication, and real-time communication with Arduino-based ultrasonic sensors.
 
+## Related Projects
+
+This infrastructure supports:
+
+- **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: Cross-platform device management application
+- **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors
+
 ## Architecture Overview
 
 This project creates a complete AWS infrastructure stack comprising:
@@ -194,14 +201,10 @@ The infrastructure is organized into **9 interconnected CloudFormation stacks**:
 
 Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/dev`
 
-All endpoints require **Cognito JWT authentication** via `Authorization` header.
-
-### Authentication Header
-
-All requests must include the Cognito JWT token:
+All endpoints require **Cognito JWT authorization**:
 
 ```bash
-Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpOaUpHVTFVc3V...
+Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpOaUpHVTFVc3V...
 ```
 
 ### Company Management
@@ -213,8 +216,8 @@ Get current user's company information. The company ID is extracted from the JWT
 **Request:**
 ```bash
 curl -X GET \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/company \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/company \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (200 OK):**
@@ -250,27 +253,6 @@ curl -X GET \
 }
 ```
 
-**Error Responses:**
-```json
-// 404 - No company associated
-{
-  "statusCode": 404,
-  "body": {
-    "error": "NO_COMPANY_ASSOCIATED",
-    "message": "User has no company associated with their account"
-  }
-}
-
-// 403 - User not member of company
-{
-  "statusCode": 403,
-  "body": {
-    "error": "ACCESS_DENIED",
-    "message": "User does not belong to this company"
-  }
-}
-```
-
 #### PATCH `/company`
 
 Update current user's company information. Supports partial updates for `companyName` and `status` fields only.
@@ -278,8 +260,8 @@ Update current user's company information. Supports partial updates for `company
 **Request:**
 ```bash
 curl -X PATCH \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/company \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/company \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
   -H 'Content-Type: application/json' \
   -d '{
     "companyName": "Louvre Museum - Security Division",
@@ -317,8 +299,8 @@ Create temporary certificates for device registration using AWS IoT provisioning
 **Request:**
 ```bash
 curl -X POST \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/provisioning-claims \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/provisioning-claims \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (201 Created):**
@@ -347,8 +329,8 @@ Check if a device exists in the IoT registry and belongs to the user's company.
 **Request:**
 ```bash
 curl -X GET \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (200 OK) - Thing exists in user's company:**
@@ -381,8 +363,8 @@ Remove device from IoT registry including certificates and policies. Only works 
 **Request:**
 ```bash
 curl -X DELETE \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (200 OK):**
@@ -410,8 +392,8 @@ Attach company-specific IoT permissions to the current user's Cognito Identity. 
 **Request:**
 ```bash
 curl -X POST \
-  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/user-policy \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+  https://{api-gateway-id}.execute-api.eu-west-2.amazonaws.com/dev/user-policy \
+  -H 'Authorization: eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (200 OK):**
@@ -611,13 +593,6 @@ aws cloudformation list-stacks --region eu-west-2 --profile cdk-deploy
 # Force cleanup if needed
 npm run destroy:dev
 ```
-
-## Related Projects
-
-This infrastructure supports:
-
-- **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: Cross-platform device management application
-- **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors
 
 ## Architecture Diagrams
 
