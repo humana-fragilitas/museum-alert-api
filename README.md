@@ -24,6 +24,8 @@ This project creates a complete AWS infrastructure stack comprising:
 
 ## Prerequisites
 
+⚠️ **Please read the [disclaimer](#disclaimer) before using this project.**
+
 ### System Requirements
 - **Node.js**: version 22.12.0 or higher;
 - **AWS CLI**: version 2.16.12 or higher, configured with appropriate credentials;
@@ -605,5 +607,65 @@ npm run destroy:dev
 ### Device Registration Flow
 ![Device Registration Flow](./docs/images/device_registration_flow_diagram.svg)
 
+## Disclaimer
+
+### Important Notice
+
+This open source project, including all its submodules, documentation, and associated code (collectively, the "Project"), is provided for educational and experimental purposes only.
+
+### No Warranty
+
+THE PROJECT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE AUTHOR MAKES NO WARRANTIES ABOUT THE ACCURACY, RELIABILITY, COMPLETENESS, OR TIMELINESS OF THE PROJECT OR ITS COMPONENTS.
+
+### Limitation of Liability
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE PROJECT OR THE USE OR OTHER DEALINGS IN THE PROJECT. THIS INCLUDES, BUT IS NOT LIMITED TO:
+
+- **AWS Costs**: any charges incurred from AWS services deployed using the provided CDK templates;
+- **Hardware Damage**: damage to Arduino boards, sensors, or other electronic components;
+- **Data Loss**: loss of data or configuration settings;
+- **Service Interruptions**: downtime or interruptions to connected services;
+- **Security Issues**: any security vulnerabilities or breaches;
+- **Indirect Damages**: lost profits, business interruption, or consequential damages of any kind.
+
+### User Responsibility
+
+By using this Project, you acknowledge and agree that:
+
+1. **you use the Project entirely at your own risk**;
+2. **you are responsible for understanding AWS pricing** and monitoring your usage to avoid unexpected charges;
+3. **you should implement appropriate security measures** for any production deployments;
+4. **you are responsible for compliance** with all applicable laws and regulations in your jurisdiction;
+5. **you should test thoroughly** in development environments before any production use;
+6. **you are responsible for backing up** any important data or configurations.
+
+### AWS Specific Notice
+
+This project may create AWS resources that incur charges; users are solely responsible for:
+- understanding AWS pricing models;
+- monitoring their AWS usage and costs;
+- properly terminating or deleting resources when no longer needed;
+- reviewing and understanding all CloudFormation templates before deployment.
+
+### Third-Party Components
+
+This Project may include or reference third-party libraries, services, or components. The author is not responsible for the functionality, security, or licensing of these third-party components. Users should review and comply with all applicable third-party licenses and terms of service.
+
+### Modification and Distribution
+
+Users may modify and distribute this Project under the terms of the applicable open source license. However, any modifications or distributions must include this disclaimer, and the author bears no responsibility for modified versions of the Project.
+
+### Professional Advice
+
+This Project is not intended to replace professional consultation. For production systems or critical applications, please consult with qualified professionals in the relevant fields.
+
+### Acknowledgments
+
+By downloading, cloning, forking, or otherwise using this Project, you acknowledge that you have read, understood, and agree to be bound by this disclaimer.
+
+The [museum-alert-desktop](https://github.com/humana-fragilitas/museum-alert-desktop) project has been derived from Maxime Gris's [angular-electron](https://github.com/maximegris/angular-electron) starter project (see the license for further information).
+
 ---
+
+
 
