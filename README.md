@@ -2,7 +2,7 @@
 
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/humana-fragilitas/c5e59bb95d53e6062c676cd9b89120a4/raw/coverage-badge.json)](https://github.com/humana-fragilitas/museum-alert/actions)
 
-AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud services for device management, user authentication, and real-time communication with Arduino-based ultrasonic sensors.
+AWS CDK-based infrastructure for the ["Museum Alert"](https://github.com/humana-fragilitas/museum-alert) IoT project, providing cloud services for device management, user authentication, and real-time communication with Arduino-based ultrasonic sensors.
 
 ## Related Projects
 
@@ -662,8 +662,6 @@ This Project is not intended to replace professional consultation. For productio
 ### Acknowledgments
 
 By downloading, cloning, forking, or otherwise using this Project, you acknowledge that you have read, understood, and agree to be bound by this disclaimer.
-
-The [museum-alert-desktop](https://github.com/humana-fragilitas/museum-alert-desktop) project has been derived from Maxime Gris's [angular-electron](https://github.com/maximegris/angular-electron) starter project (see the license for further information).
 
 ---
 
