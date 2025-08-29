@@ -192,7 +192,7 @@ The infrastructure is organized into **9 interconnected CloudFormation stacks**:
 
 ## API Endpoints
 
-Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{stage}`
+Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/dev`
 
 All endpoints require **Cognito JWT authentication** via `Authorization` header.
 
@@ -271,7 +271,7 @@ namespace AWS {
 
 ![Configuration Output](./docs/images/configuration_output.png)
 
-## 🌍 Environment Configuration
+## Environment Configuration
 
 ### Development Environment (`dev`)
 - **Region**: `eu-west-2` (Europe - London)
