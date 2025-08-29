@@ -8,26 +8,26 @@ AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud s
 
 This infrastructure supports:
 
-- **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: Cross-platform device management application
-- **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors
+- **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: cross-platform device management application;
+- **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors.
 
 ## Architecture Overview
 
 This project creates a complete AWS infrastructure stack comprising:
 
 - **API Gateway**: RESTful endpoints for device and user management;
-- **AWS Cognito**: User authentication and authorization services;
-- **AWS IoT Core**: Device connectivity, message routing, and provisioning;
-- **AWS Lambda**: Serverless business logic and event processing;
+- **AWS Cognito**: user authentication and authorization services;
+- **AWS IoT Core**: device connectivity, message routing, and provisioning;
+- **AWS Lambda**: serverless business logic and event processing;
 - **DynamoDB**: NoSQL database for storing company and device data;
-- **CloudWatch**: Logging, monitoring, and alerting.
+- **CloudWatch**: logging, monitoring, and alerting.
 
 ## Prerequisites
 
 ### System Requirements
-- **Node.js**: version 18.x or higher;
-- **AWS CLI**: configured with appropriate credentials;
-- **AWS CDK**: version 2.208.0 or higher.
+- **Node.js**: version 22.12.0 or higher;
+- **AWS CLI**: version 2.16.12 or higher, configured with appropriate credentials;
+- **AWS CDK**: version 2.1022.0 or higher.
 
 ### AWS Account Setup
 
