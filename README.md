@@ -8,19 +8,19 @@ AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud s
 
 This project creates a complete AWS infrastructure stack comprising:
 
-- **API Gateway**: RESTful endpoints for device and user management
-- **AWS Cognito**: User authentication and authorization services
-- **AWS IoT Core**: Device connectivity, message routing, and provisioning
-- **AWS Lambda**: Serverless business logic and event processing
-- **DynamoDB**: NoSQL database for storing company and device data
-- **CloudWatch**: Logging, monitoring, and alerting
+- **API Gateway**: RESTful endpoints for device and user management;
+- **AWS Cognito**: User authentication and authorization services;
+- **AWS IoT Core**: Device connectivity, message routing, and provisioning;
+- **AWS Lambda**: Serverless business logic and event processing;
+- **DynamoDB**: NoSQL database for storing company and device data;
+- **CloudWatch**: Logging, monitoring, and alerting.
 
 ## Prerequisites
 
 ### System Requirements
-- **Node.js**: version 18.x or higher
-- **AWS CLI**: configured with appropriate credentials
-- **AWS CDK**: version 2.208.0 or higher
+- **Node.js**: version 18.x or higher;
+- **AWS CLI**: configured with appropriate credentials;
+- **AWS CDK**: version 2.208.0 or higher.
 
 ### AWS Account Setup
 
@@ -28,24 +28,21 @@ This project creates a complete AWS infrastructure stack comprising:
 
 1. **Log into AWS Console** → Go to **IAM service**
 2. **Create a new IAM user**:
-   - Click "Users" → "Add users"
-   - Enter username (e.g., "museum-alert-dev")
-   - Select "Attach policies directly"
-   - Attach "AdministratorAccess" policy (for development)
-   - Click "Create user"
+   - click "Users" → "Add users";
+   - enter username (e.g., "museum-alert-dev");
+   - select "Attach policies directly";
+   - attach "AdministratorAccess" policy (for development);
+   - click "Create user".
 3. **Generate Access Keys**:
-   - Click on the username → "Security credentials"
-   - Click "Create access key" → Choose "Command Line Interface (CLI)"
+   - click on the username → "Security credentials";
+   - click "Create access key" → Choose "Command Line Interface (CLI)";
    - **Save the credentials securely** - you won't see the secret key again!
 
-#### 2. Configure AWS CLI
+#### 2. Install and Configure AWS CLI
+
+Install the AWS CLI following the [instructions on the official guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
 ```bash
-# Install AWS CLI if not already installed
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
 # Configure AWS credentials
 aws configure --profile cdk-deploy
 # Enter your Access Key ID and Secret Access Key
@@ -67,20 +64,7 @@ cdk --version
 
 ## Quick Start
 
-### Option 1: AWS CloudShell (Recommended for first-time users)
-
-1. **Open AWS CloudShell** in your AWS Console
-2. **Clone and deploy**:
-   ```bash
-   git clone https://github.com/humana-fragilitas/museum-alert-api.git
-   cd museum-alert-api
-   npm install
-   
-   # Deploy to development environment
-   npm run deploy:dev
-   ```
-
-### Option 2: Local Development
+### Local Development
 
 1. **Clone the repository**:
    ```bash
@@ -110,30 +94,25 @@ cdk --version
 | Command | Description | Environment | Region |
 |---------|-------------|-------------|--------|
 | `npm run deploy:dev` | Deploy all stacks to development | Development | eu-west-2 |
-| `npm run deploy:prod` | Deploy all stacks to production | Production | eu-west-1 |
 
 ### Preview Commands
 
 | Command | Description |
 |---------|-------------|
 | `npm run diff:dev` | Show changes that would be made to dev environment |
-| `npm run diff:prod` | Show changes that would be made to prod environment |
 | `npm run synth:dev` | Generate CloudFormation templates for dev |
-| `npm run synth:prod` | Generate CloudFormation templates for prod |
 
 ### Cleanup Commands
 
 | Command | Description |
 |---------|-------------|
 | `npm run destroy:dev` | ⚠️ Delete all development resources |
-| `npm run destroy:prod` | ⚠️ Delete all production resources |
 
 ### Utility Commands
 
 | Command | Description |
 |---------|-------------|
 | `npm run bootstrap:dev` | One-time CDK setup for dev region |
-| `npm run bootstrap:prod` | One-time CDK setup for prod region |
 | `npm test` | Run unit tests |
 | `npm run test:coverage` | Run tests with coverage report |
 
@@ -144,44 +123,44 @@ cdk --version
 The infrastructure is organized into **9 interconnected CloudFormation stacks**:
 
 #### 1. **IAM Stack** (`museum-alert-iam-{stage}`)
-- **Purpose**: Identity and Access Management roles and policies
+- **Purpose**: identity and Access Management roles and policies.
 - **Resources**:
-  - Lambda execution roles
-  - IoT provisioning roles
-  - Cross-service permissions
+  - lambda execution roles;
+  - IoT provisioning roles;
+  - cross-service permissions.
 
 #### 2. **Shared Infrastructure Stack** (`museum-alert-shared-infra-{stage}`)
-- **Purpose**: Common resources shared across services
+- **Purpose**: common resources shared across services.
 - **Resources**:
-  - Lambda Layer with shared utilities
-  - Common libraries and dependencies
+  - lambda Layer with shared utilities;
+  - common libraries and dependencies.
 
 #### 3. **Database Stack** (`museum-alert-database-{stage}`)
-- **Purpose**: Data persistence layer
+- **Purpose**: data persistence layer.
 - **Resources**:
-  - DynamoDB table: `companies` (company information storage)
-  - Pay-per-request billing
-  - Point-in-time recovery enabled
+  - DynamoDB table: `companies` (company information storage);
+  - pay-per-request billing;
+  - point-in-time recovery enabled.
 
 #### 4. **Cognito Stack** (`museum-alert-cognito-{stage}`)
-- **Purpose**: User authentication and authorization
+- **Purpose**: User authentication and authorization.
 - **Resources**:
-  - User Pool: `museum-alert-user-pool-open-signup`
-  - Identity Pool: `museum-alert-identity-pool`
-  - User Pool Client for web/mobile applications
-  - Post-confirmation Lambda trigger
+  - User Pool: `museum-alert-user-pool-open-signup`;
+  - Identity Pool: `museum-alert-identity-pool`;
+  - User Pool Client for web/mobile applications;
+  - Post-confirmation Lambda trigger.
 
 #### 5. **Lambda Stack** (`museum-alert-lambda-{stage}`)
-- **Purpose**: Serverless business logic
+- **Purpose**: Serverless business logic.
 - **Resources**:
-  - **Company Management**: `getCompanyLambda`, `updateCompanyLambda`
-  - **Device Provisioning**: `createProvisioningClaimLambda`, `preProvisioningHookLambda`
-  - **Device Management**: `checkThingExistsLambda`, `deleteThingLambda`
-  - **IoT Integration**: `attachIoTPolicyLambda`, `addThingToGroupLambda`
-  - **Event Processing**: `republishDeviceConnectionStatusLambda`
+  - **Company Management**: `getCompanyLambda`, `updateCompanyLambda`;
+  - **Device Provisioning**: `createProvisioningClaimLambda`, `preProvisioningHookLambda`;
+  - **Device Management**: `checkThingExistsLambda`; `deleteThingLambda`
+  - **IoT Integration**: `attachIoTPolicyLambda`, `addThingToGroupLambda`;
+  - **Event Processing**: `republishDeviceConnectionStatusLambda`.
 
 #### 6. **IoT Stack** (`museum-alert-iot-{stage}`)
-- **Purpose**: IoT device connectivity and management
+- **Purpose**: IoT device connectivity and management.
 - **Resources**:
   - Thing Type: `Museum-Alert-Sensor`
   - Provisioning Template: `museum-alert-provisioning-template`
@@ -189,27 +168,27 @@ The infrastructure is organized into **9 interconnected CloudFormation stacks**:
   - Device provisioning workflow
 
 #### 7. **API Gateway Stack** (`museum-alert-api-{stage}`)
-- **Purpose**: RESTful API endpoints
+- **Purpose**: RESTful API endpoints.
 - **Resources**:
-  - REST API: `museum-alert-api`
-  - Cognito authorizer integration
-  - CORS configuration
-  - CloudWatch logging
+  - REST API: `museum-alert-api`;
+  - Cognito authorizer integration;
+  - CORS configuration;
+  - CloudWatch logging.
 
 #### 8. **Triggers Stack** (`museum-alert-triggers-{stage}`)
-- **Purpose**: Event-driven automation and routing
+- **Purpose**: Event-driven automation and routing.
 - **Resources**:
-  - IoT Rules for message routing
-  - Device connection status republishing
-  - Automatic thing group management
-  - CloudWatch integration
+  - IoT Rules for message routing;
+  - device connection status republishing;
+  - automatic thing group management;
+  - CloudWatch integration.
 
 #### 9. **Config Output Stack** (`museum-alert-config-{stage}`)
-- **Purpose**: Configuration export for client applications
+- **Purpose**: Configuration export for client applications.
 - **Resources**:
-  - Angular application configuration
-  - Arduino sketch configuration
-  - Endpoint URLs and resource IDs
+  - Angular application configuration;
+  - Arduino sketch configuration;
+  - endpoint URLs and resource IDs.
 
 ## API Endpoints
 
@@ -413,15 +392,5 @@ This infrastructure supports:
 ### Device Registration Flow
 ![Device Registration Flow](./docs/images/device_registration_flow_diagram.svg)
 
-## ⚠️ Important Notes
-
-- **Bootstrap is required** once per AWS account/region before first deployment
-- **Development resources** are configured for auto-deletion to minimize costs
-- **Production resources** are retained even after stack deletion for data protection
-- **Configuration outputs** are essential for client application setup
-- **IAM permissions** require administrative access for initial setup
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+---
 
