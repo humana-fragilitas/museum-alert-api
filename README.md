@@ -46,7 +46,7 @@ Install the AWS CLI following the [instructions on the official guide](https://d
 # Configure AWS credentials
 aws configure --profile cdk-deploy
 # Enter your Access Key ID and Secret Access Key
-# Default region: eu-west-2 (for development) or eu-west-1 (for production)
+# Default region: eu-west-2 (for development)
 # Default output format: json
 
 # Verify setup
@@ -196,31 +196,231 @@ Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/dev`
 
 All endpoints require **Cognito JWT authentication** via `Authorization` header.
 
+### Authentication Header
+
+All requests must include the Cognito JWT token:
+
+```bash
+Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpOaUpHVTFVc3V...
+```
+
 ### Company Management
 
-| Endpoint | Method | Description | Request Body | Response |
-|----------|--------|-------------|--------------|----------|
-| `/company` | GET | Get current user's company information | None | Company object |
-| `/company` | PATCH | Update current user's company information | Company data | Updated company object |
+#### GET `/company`
+
+Get current user's company information.
+
+**Request:**
+```bash
+curl -X GET \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/company \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+```
+
+**Response (200 OK):**
+```json
+{
+  "companyId": "comp_uuid_12345",
+  "name": "Louvre Museum",
+  "address": "Rue de Rivoli, 75001 Paris, France",
+  "contactEmail": "security@louvre.fr",
+  "timezone": "Europe/Paris",
+  "deviceCount": 15,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-08-20T14:22:00Z"
+}
+```
+
+#### PATCH `/company`
+
+Update current user's company information.
+
+**Request:**
+```bash
+curl -X PATCH \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/company \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Louvre Museum - Security Division",
+    "contactEmail": "security-alerts@louvre.fr",
+    "timezone": "Europe/Paris"
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "companyId": "comp_uuid_12345",
+  "name": "Louvre Museum - Security Division",
+  "address": "Rue de Rivoli, 75001 Paris, France",
+  "contactEmail": "security-alerts@louvre.fr",
+  "timezone": "Europe/Paris",
+  "deviceCount": 15,
+  "updatedAt": "2024-08-29T16:45:00Z"
+}
+```
 
 ### Device Provisioning
 
-| Endpoint | Method | Description | Request Body | Response |
-|----------|--------|-------------|--------------|----------|
-| `/provisioning-claims` | POST | Create temporary certificates for device registration | Device metadata | Certificate and private key |
+#### POST `/provisioning-claims`
+
+Create temporary certificates for device registration. Used during the device setup process.
+
+**Request:**
+```bash
+curl -X POST \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/provisioning-claims \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "serialNumber": "SENSOR_001_ABC123",
+    "deviceType": "Museum-Alert-Sensor",
+    "location": "Gallery 12 - Renaissance Wing"
+  }'
+```
+
+**Response (201 Created):**
+```json
+{
+  "claimId": "claim_uuid_67890",
+  "serialNumber": "SENSOR_001_ABC123",
+  "certificatePem": "-----BEGIN CERTIFICATE-----\nMIIDQTCCAimgAwIBAgITBmyfz5m...\n-----END CERTIFICATE-----",
+  "privateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA2b1bXDa+cLg...\n-----END RSA PRIVATE KEY-----",
+  "expiresAt": "2024-08-30T16:45:00Z",
+  "status": "pending_activation"
+}
+```
 
 ### Device Management
 
-| Endpoint | Method | Description | Request Body | Response |
-|----------|--------|-------------|--------------|----------|
-| `/things/{thingName}` | GET | Get device information by serial number | None | Device object |
-| `/things/{thingName}` | DELETE | Remove device from company fleet | None | Deletion confirmation |
+#### GET `/things/{thingName}`
+
+Get device information by serial number. The `thingName` parameter should be the device's serial number.
+
+**Request:**
+```bash
+curl -X GET \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+```
+
+**Response (200 OK):**
+```json
+{
+  "thingName": "SENSOR_001_ABC123",
+  "thingType": "Museum-Alert-Sensor",
+  "attributes": {
+    "serialNumber": "SENSOR_001_ABC123",
+    "location": "Gallery 12 - Renaissance Wing",
+    "companyId": "comp_uuid_12345",
+    "firmwareVersion": "1.2.3",
+    "lastSeen": "2024-08-29T15:30:00Z"
+  },
+  "connectivity": {
+    "connected": true,
+    "lastConnected": "2024-08-29T15:30:00Z",
+    "lastDisconnected": "2024-08-29T10:15:00Z"
+  },
+  "createdAt": "2024-07-15T09:20:00Z",
+  "updatedAt": "2024-08-29T15:30:00Z"
+}
+```
+
+**Response (404 Not Found):**
+```json
+{
+  "error": "ThingNotFound",
+  "message": "Device with serial number 'SENSOR_001_XYZ999' not found in your company fleet",
+  "timestamp": "2024-08-29T16:45:00Z"
+}
+```
+
+#### DELETE `/things/{thingName}`
+
+Remove device from company fleet. This permanently deletes the device and its certificates.
+
+**Request:**
+```bash
+curl -X DELETE \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/things/SENSOR_001_ABC123 \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Device 'SENSOR_001_ABC123' successfully removed from company fleet",
+  "thingName": "SENSOR_001_ABC123",
+  "deletedAt": "2024-08-29T16:45:00Z",
+  "certificatesRevoked": 1
+}
+```
 
 ### User Authorization
 
-| Endpoint | Method | Description | Request Body | Response |
-|----------|--------|-------------|--------------|----------|
-| `/user-policy` | POST | Attach IoT permissions to current user | None | Policy attachment confirmation |
+#### POST `/user-policy`
+
+Attach IoT permissions to current user. This grants the user access to subscribe to device topics and send commands.
+
+**Request:**
+```bash
+curl -X POST \
+  https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/user-policy \
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "IoT policy successfully attached to user",
+  "userId": "us-west-2:12345678-1234-1234-1234-123456789012",
+  "policyName": "museum-alert-user-policy-comp_uuid_12345",
+  "attachedAt": "2024-08-29T16:45:00Z",
+  "permissions": [
+    "iot:Subscribe",
+    "iot:Receive",
+    "iot:Publish"
+  ],
+  "allowedTopics": [
+    "museum-alert/company/comp_uuid_12345/+/status",
+    "museum-alert/company/comp_uuid_12345/+/data",
+    "museum-alert/company/comp_uuid_12345/+/commands"
+  ]
+}
+```
+
+### Error Responses
+
+All endpoints may return the following error responses:
+
+#### 401 Unauthorized
+```json
+{
+  "error": "Unauthorized",
+  "message": "Missing or invalid authorization token",
+  "timestamp": "2024-08-29T16:45:00Z"
+}
+```
+
+#### 403 Forbidden
+```json
+{
+  "error": "Forbidden", 
+  "message": "User does not have permission to access this resource",
+  "timestamp": "2024-08-29T16:45:00Z"
+}
+```
+
+#### 500 Internal Server Error
+```json
+{
+  "error": "InternalServerError",
+  "message": "An unexpected error occurred. Please try again later.",
+  "requestId": "12345678-1234-1234-1234-123456789012",
+  "timestamp": "2024-08-29T16:45:00Z"
+}
+```
 
 ## Configuration Output
 
@@ -279,12 +479,6 @@ namespace AWS {
 - **Features**: Debug logging, auto-cleanup on destroy
 - **Cost**: Minimal (pay-per-use resources)
 
-### Production Environment (`prod`)
-- **Region**: `eu-west-1` (Europe - Ireland)
-- **Purpose**: Live production workloads
-- **Features**: Enhanced logging, resource retention
-- **Cost**: Production-scale pricing
-
 ## Development Workflow
 
 ### 1. Preview Changes
@@ -300,17 +494,8 @@ npm run deploy:dev
 ```
 
 ### 3. Test Your Changes
-- Use the configuration outputs to test with client applications
-- Verify API endpoints and IoT functionality
-
-### 4. Deploy to Production
-```bash
-# Preview production changes
-npm run diff:prod
-
-# Deploy to production
-npm run deploy:prod
-```
+- Use the configuration outputs to test with client applications;
+- verify API endpoints and IoT functionality.
 
 ### 5. Cleanup Development Resources
 ```bash
