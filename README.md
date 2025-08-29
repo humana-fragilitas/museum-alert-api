@@ -30,14 +30,7 @@ This project creates a complete AWS infrastructure stack comprising:
 - **Node.js**: version 22.12.0 or higher;
 - **AWS CLI**: version 2.16.12 or higher, configured with appropriate credentials;
 - **AWS CDK**: version 2.1022.0 or higher;
-- **Docker**: version 20.10.0 or higher with Docker daemon running and accessible via Docker socket. AWS CDK requires Docker to build the Lambda Layer (`museum-alert-shared-layer-dev`) using the `NODEJS_22_X.bundlingImage` container. During deployment, CDK executes:
-
-```bash
-docker run --rm -v <project-path>:/asset-input -v <temp-path>:/asset-output \
-public.ecr.aws/lambda/nodejs:22 \
-bash -c "cp -r /asset-input/* /asset-output/ && cd /asset-output/nodejs && npm install --only=production"
-```
-**Failure symptoms**: `npm run deploy:dev` fails with "Cannot connect to the Docker daemon" or "docker: command not found" during the `SharedInfrastructureStack` deployment phase.
+- **Docker**: version 20.10.0 or higher with Docker daemon running and accessible via Docker socket. AWS CDK requires Docker to build the Lambda Layer (`museum-alert-shared-layer-dev`) using the `NODEJS_22_X.bundlingImage` container. 
 
 ### AWS Account Setup
 
