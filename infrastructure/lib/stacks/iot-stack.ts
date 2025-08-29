@@ -197,7 +197,7 @@ export class IoTStack extends BaseStack {
             Properties: {
               PolicyDocument: {
                 'Fn::Sub': [
-                  '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"iot:Connect","Resource":"arn:aws:iot:${Region}:${AccountId}:client/${ThingName}"},{"Effect":"Allow","Action":"iot:Subscribe","Resource":"arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Receive","Resource":"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Publish","Resource":["arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events","arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands/ack"]}]}',
+                  '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"iot:Connect","Resource":"arn:aws:iot:${Region}:${AccountId}:client/${ThingName}"},{"Effect":"Allow","Action":"iot:Subscribe","Resource":"arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Receive","Resource":"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/commands"},{"Effect":"Allow","Action":"iot:Publish","Resource":["arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events"]}]}',
                   {
                     ThingName: { Ref: 'ThingName' },
                     Company: { Ref: 'Company' },
