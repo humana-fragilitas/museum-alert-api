@@ -4,7 +4,7 @@
 
 AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud services for device management, user authentication, and real-time communication with Arduino-based ultrasonic sensors.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 This project creates a complete AWS infrastructure stack comprising:
 
@@ -15,7 +15,7 @@ This project creates a complete AWS infrastructure stack comprising:
 - **DynamoDB**: NoSQL database for storing company and device data
 - **CloudWatch**: Logging, monitoring, and alerting
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### System Requirements
 - **Node.js**: version 18.x or higher
@@ -65,7 +65,7 @@ npm install -g aws-cdk
 cdk --version
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: AWS CloudShell (Recommended for first-time users)
 
@@ -103,7 +103,7 @@ cdk --version
    npm run deploy:dev
    ```
 
-## 🛠️ Available Commands
+## Available Commands
 
 ### Deployment Commands
 
@@ -211,7 +211,7 @@ The infrastructure is organized into **9 interconnected CloudFormation stacks**:
   - Arduino sketch configuration
   - Endpoint URLs and resource IDs
 
-## 📡 API Endpoints
+## API Endpoints
 
 Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{stage}`
 
@@ -243,7 +243,7 @@ All endpoints require **Cognito JWT authentication** via `Authorization` header.
 |----------|--------|-------------|--------------|----------|
 | `/user-policy` | POST | Attach IoT permissions to current user | None | Policy attachment confirmation |
 
-## 📤 Configuration Output
+## Configuration Output
 
 After successful deployment, the system provides ready-to-use configuration for client applications:
 
@@ -290,6 +290,8 @@ namespace AWS {
 }
 ```
 
+![Configuration Output](./docs/images/configuration_output.png)
+
 ## 🌍 Environment Configuration
 
 ### Development Environment (`dev`)
@@ -304,7 +306,7 @@ namespace AWS {
 - **Features**: Enhanced logging, resource retention
 - **Cost**: Production-scale pricing
 
-## 🔧 Development Workflow
+## Development Workflow
 
 ### 1. Preview Changes
 ```bash
@@ -337,52 +339,7 @@ npm run deploy:prod
 npm run destroy:dev
 ```
 
-## Architecture diagrams
-
-### User registration flow
-
-![alt text](./docs/images/registration_flow_diagram.svg "Museum Alert User Registration Flow Diagram")
-
-### User authentication flow
-
-![alt text](./docs/images/authentication_flow_diagram.svg "Museum Alert User Authentication Flow Diagram")
-
-### Device registration flow
-
-![alt text](./docs/images/device_registration_flow_diagram.svg "Museum Alert Device Registration Flow Diagram")
-
-## 🗂️ Project Structure
-
-```
-museum-alert-api/
-├── infrastructure/
-│   ├── bin/
-│   │   └── iot-project.ts          # CDK app entry point
-│   ├── config/
-│   │   ├── environments.ts         # Environment configurations
-│   │   └── types.ts               # TypeScript type definitions
-│   └── lib/stacks/                # CloudFormation stacks
-│       ├── api-gateway-stack.ts   # REST API definitions
-│       ├── cognito-stack.ts       # Authentication services
-│       ├── config-output-stack.ts # Configuration export
-│       ├── database-stack.ts      # DynamoDB tables
-│       ├── iam-stack.ts          # Access management
-│       ├── iot-stack.ts          # IoT device management
-│       ├── lambda-stack.ts       # Serverless functions
-│       ├── shared-infra-stack.ts # Common resources
-│       └── triggers-stack.ts     # Event automation
-├── lambda/                        # Lambda function code
-│   ├── getCompanyLambda/
-│   ├── updateCompanyLambda/
-│   ├── createProvisioningClaimLambda/
-│   ├── checkThingExistsLambda/
-│   ├── deleteThingLambda/
-│   ├── attachIoTPolicyLambda/
-│   └── ... (other Lambda functions)
-└── docs/                         # Architecture diagrams
-```
-
-## 📊 Monitoring and Logging
+## Monitoring and Logging
 
 The infrastructure includes comprehensive monitoring:
 
@@ -391,7 +348,7 @@ The infrastructure includes comprehensive monitoring:
 - **IoT Logging**: Device connection and message flow
 - **Access Logs**: API Gateway request/response logging
 
-## 💰 Cost Optimization
+## Cost Optimization
 
 ### Development Environment
 - **DynamoDB**: Pay-per-request (minimal cost for testing)
@@ -399,12 +356,7 @@ The infrastructure includes comprehensive monitoring:
 - **API Gateway**: Pay-per-request
 - **IoT Core**: Pay-per-message
 
-### Production Environment
-- **DynamoDB**: Provisioned capacity for predictable costs
-- **CloudWatch**: Log retention optimized
-- **API Gateway**: Consider usage plans for cost control
-
-## 🔒 Security Features
+## Security Features
 
 - **IAM Roles**: Least-privilege access principles
 - **Cognito Authentication**: JWT token-based API access
@@ -412,7 +364,7 @@ The infrastructure includes comprehensive monitoring:
 - **VPC Integration**: Optional for enhanced security
 - **Encryption**: Data encrypted in transit and at rest
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -431,7 +383,7 @@ The infrastructure includes comprehensive monitoring:
 
 4. **Region Mismatch**:
    - Ensure AWS CLI region matches environment configuration
-   - Dev: `eu-west-2`, Prod: `eu-west-1`
+   - Dev: `eu-west-2`
 
 ### Cleanup Failed Deployments
 
@@ -443,16 +395,14 @@ aws cloudformation list-stacks --region eu-west-2 --profile cdk-deploy
 npm run destroy:dev
 ```
 
-## 🔗 Related Projects
+## Related Projects
 
 This infrastructure supports:
 
 - **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: Cross-platform device management application
 - **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors
 
-## 📋 Architecture Diagrams
-
-![Configuration Output](./docs/images/configuration_output.png)
+## Architecture Diagrams
 
 ### User Registration Flow
 ![User Registration Flow](./docs/images/registration_flow_diagram.svg)
