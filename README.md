@@ -208,7 +208,7 @@ Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpOaUpHVTFVc3V...
 
 #### GET `/company`
 
-Get current user's company information.
+Get current user's company information. The company ID is extracted from the JWT token's `custom:Company` property.
 
 **Request:**
 ```bash
@@ -220,20 +220,60 @@ curl -X GET \
 **Response (200 OK):**
 ```json
 {
-  "companyId": "comp_uuid_12345",
-  "name": "Louvre Museum",
-  "address": "Rue de Rivoli, 75001 Paris, France",
-  "contactEmail": "security@louvre.fr",
-  "timezone": "Europe/Paris",
-  "deviceCount": 15,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-08-20T14:22:00Z"
+  "statusCode": 200,
+  "body": {
+    "companyId": "123e4567-e89b-12d3-a456-426614174000",
+    "companyName": "Louvre Museum Security",
+    "status": "active",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-06-12T14:22:15.000Z",
+    "ownerEmail": "security@louvre.fr",
+    "ownerUsername": "security@louvre.fr",
+    "memberCount": 3,
+    "members": [
+      {
+        "email": "security@louvre.fr",
+        "username": "security@louvre.fr",
+        "role": "owner",
+        "joinedAt": "2024-01-15T10:30:00.000Z"
+      },
+      {
+        "email": "guard1@louvre.fr",
+        "username": "guard1@louvre.fr",
+        "role": "member",
+        "joinedAt": "2024-01-16T09:15:00.000Z"
+      }
+    ],
+    "userRole": "owner",
+    "userJoinedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+```json
+// 404 - No company associated
+{
+  "statusCode": 404,
+  "body": {
+    "error": "NO_COMPANY_ASSOCIATED",
+    "message": "User has no company associated with their account"
+  }
+}
+
+// 403 - User not member of company
+{
+  "statusCode": 403,
+  "body": {
+    "error": "ACCESS_DENIED",
+    "message": "User does not belong to this company"
+  }
 }
 ```
 
 #### PATCH `/company`
 
-Update current user's company information.
+Update current user's company information. Supports partial updates for `companyName` and `status` fields only.
 
 **Request:**
 ```bash
@@ -242,22 +282,29 @@ curl -X PATCH \
   -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Louvre Museum - Security Division",
-    "contactEmail": "security-alerts@louvre.fr",
-    "timezone": "Europe/Paris"
+    "companyName": "Louvre Museum - Security Division",
+    "status": "active"
   }'
 ```
 
 **Response (200 OK):**
 ```json
 {
-  "companyId": "comp_uuid_12345",
-  "name": "Louvre Museum - Security Division",
-  "address": "Rue de Rivoli, 75001 Paris, France",
-  "contactEmail": "security-alerts@louvre.fr",
-  "timezone": "Europe/Paris",
-  "deviceCount": 15,
-  "updatedAt": "2024-08-29T16:45:00Z"
+  "statusCode": 200,
+  "body": {
+    "message": "Company updated successfully",
+    "company": {
+      "companyId": "123e4567-e89b-12d3-a456-426614174000",
+      "companyName": "Louvre Museum - Security Division",
+      "status": "active",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-08-29T16:45:00.000Z",
+      "ownerEmail": "security@louvre.fr",
+      "memberCount": 3,
+      "members": [...]
+    },
+    "updatedFields": ["companyName", "status"]
+  }
 }
 ```
 
@@ -265,30 +312,29 @@ curl -X PATCH \
 
 #### POST `/provisioning-claims`
 
-Create temporary certificates for device registration. Used during the device setup process.
+Create temporary certificates for device registration using AWS IoT provisioning template.
 
 **Request:**
 ```bash
 curl -X POST \
   https://abcd123456.execute-api.eu-west-2.amazonaws.com/dev/provisioning-claims \
-  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "serialNumber": "SENSOR_001_ABC123",
-    "deviceType": "Museum-Alert-Sensor",
-    "location": "Gallery 12 - Renaissance Wing"
-  }'
+  -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
 **Response (201 Created):**
 ```json
 {
-  "claimId": "claim_uuid_67890",
-  "serialNumber": "SENSOR_001_ABC123",
-  "certificatePem": "-----BEGIN CERTIFICATE-----\nMIIDQTCCAimgAwIBAgITBmyfz5m...\n-----END CERTIFICATE-----",
-  "privateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA2b1bXDa+cLg...\n-----END RSA PRIVATE KEY-----",
-  "expiresAt": "2024-08-30T16:45:00Z",
-  "status": "pending_activation"
+  "statusCode": 201,
+  "body": {
+    "message": "Successfully created provisioning claim",
+    "certificateId": "a1b2c3d4e5f6789012345678901234567890abcd",
+    "certificatePem": "-----BEGIN CERTIFICATE-----\nMIIDQTCCAimgAwIBAgITBmyfz5m...\n-----END CERTIFICATE-----",
+    "keyPair": {
+      "PublicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEF...\n-----END PUBLIC KEY-----",
+      "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA2b1bXDa+cLg...\n-----END RSA PRIVATE KEY-----"
+    },
+    "expiration": "2024-08-30T16:45:00.000Z"
+  }
 }
 ```
 
@@ -296,7 +342,7 @@ curl -X POST \
 
 #### GET `/things/{thingName}`
 
-Get device information by serial number. The `thingName` parameter should be the device's serial number.
+Check if a device exists in the IoT registry and belongs to the user's company.
 
 **Request:**
 ```bash
@@ -305,40 +351,32 @@ curl -X GET \
   -H 'Authorization: Bearer eyJraWQiOiJabEZyVGsxN2c4OVpO...'
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - Thing exists in user's company:**
 ```json
 {
-  "thingName": "SENSOR_001_ABC123",
-  "thingType": "Museum-Alert-Sensor",
-  "attributes": {
-    "serialNumber": "SENSOR_001_ABC123",
-    "location": "Gallery 12 - Renaissance Wing",
-    "companyId": "comp_uuid_12345",
-    "firmwareVersion": "1.2.3",
-    "lastSeen": "2024-08-29T15:30:00Z"
-  },
-  "connectivity": {
-    "connected": true,
-    "lastConnected": "2024-08-29T15:30:00Z",
-    "lastDisconnected": "2024-08-29T10:15:00Z"
-  },
-  "createdAt": "2024-07-15T09:20:00Z",
-  "updatedAt": "2024-08-29T15:30:00Z"
+  "statusCode": 200,
+  "body": {
+    "message": "Thing already exists in the logged user's company \"123e4567-e89b-12d3-a456-426614174000\"",
+    "thingName": "SENSOR_001_ABC123",
+    "company": "123e4567-e89b-12d3-a456-426614174000"
+  }
 }
 ```
 
 **Response (404 Not Found):**
 ```json
 {
-  "error": "ThingNotFound",
-  "message": "Device with serial number 'SENSOR_001_XYZ999' not found in your company fleet",
-  "timestamp": "2024-08-29T16:45:00Z"
+  "statusCode": 404,
+  "body": {
+    "error": "THING_NOT_FOUND",
+    "message": "Thing not found in IoT registry"
+  }
 }
 ```
 
 #### DELETE `/things/{thingName}`
 
-Remove device from company fleet. This permanently deletes the device and its certificates.
+Remove device from IoT registry including certificates and policies. Only works for devices in the user's company.
 
 **Request:**
 ```bash
@@ -350,10 +388,16 @@ curl -X DELETE \
 **Response (200 OK):**
 ```json
 {
-  "message": "Device 'SENSOR_001_ABC123' successfully removed from company fleet",
-  "thingName": "SENSOR_001_ABC123",
-  "deletedAt": "2024-08-29T16:45:00Z",
-  "certificatesRevoked": 1
+  "statusCode": 200,
+  "body": {
+    "message": "Thing and associated resources deleted successfully",
+    "thingName": "SENSOR_001_ABC123",
+    "deletedResources": {
+      "certificates": 1,
+      "policies": 2,
+      "thing": true
+    }
+  }
 }
 ```
 
@@ -361,7 +405,7 @@ curl -X DELETE \
 
 #### POST `/user-policy`
 
-Attach IoT permissions to current user. This grants the user access to subscribe to device topics and send commands.
+Attach company-specific IoT permissions to the current user's Cognito Identity. Creates the policy if it doesn't exist.
 
 **Request:**
 ```bash
@@ -373,52 +417,61 @@ curl -X POST \
 **Response (200 OK):**
 ```json
 {
-  "message": "IoT policy successfully attached to user",
-  "userId": "us-west-2:12345678-1234-1234-1234-123456789012",
-  "policyName": "museum-alert-user-policy-comp_uuid_12345",
-  "attachedAt": "2024-08-29T16:45:00Z",
-  "permissions": [
-    "iot:Subscribe",
-    "iot:Receive",
-    "iot:Publish"
-  ],
-  "allowedTopics": [
-    "museum-alert/company/comp_uuid_12345/+/status",
-    "museum-alert/company/comp_uuid_12345/+/data",
-    "museum-alert/company/comp_uuid_12345/+/commands"
-  ]
+  "statusCode": 200,
+  "body": {
+    "message": "IoT policy successfully attached to user identity",
+    "policyName": "museum-alert-user-policy-123e4567-e89b-12d3-a456-426614174000",
+    "identityId": "eu-west-2:12345678-1234-1234-1234-123456789012",
+    "company": "123e4567-e89b-12d3-a456-426614174000",
+    "permissions": {
+      "connect": "arn:aws:iot:eu-west-2:123456789012:client/${cognito-identity.amazonaws.com:sub}",
+      "subscribe": [
+        "arn:aws:iot:eu-west-2:123456789012:topicfilter/museum-alert/123e4567-e89b-12d3-a456-426614174000/+/data",
+        "arn:aws:iot:eu-west-2:123456789012:topicfilter/museum-alert/123e4567-e89b-12d3-a456-426614174000/+/status"
+      ],
+      "publish": [
+        "arn:aws:iot:eu-west-2:123456789012:topic/museum-alert/123e4567-e89b-12d3-a456-426614174000/+/commands"
+      ]
+    }
+  }
 }
 ```
 
 ### Error Responses
 
-All endpoints may return the following error responses:
+All endpoints may return the following standard error responses:
 
 #### 401 Unauthorized
 ```json
 {
-  "error": "Unauthorized",
-  "message": "Missing or invalid authorization token",
-  "timestamp": "2024-08-29T16:45:00Z"
+  "statusCode": 401,
+  "body": {
+    "error": "UNAUTHORIZED",
+    "message": "Missing or invalid authentication context"
+  }
 }
 ```
 
 #### 403 Forbidden
 ```json
 {
-  "error": "Forbidden", 
-  "message": "User does not have permission to access this resource",
-  "timestamp": "2024-08-29T16:45:00Z"
+  "statusCode": 403,
+  "body": {
+    "error": "ACCESS_DENIED",
+    "message": "User does not have permission to access this resource"
+  }
 }
 ```
 
 #### 500 Internal Server Error
 ```json
 {
-  "error": "InternalServerError",
-  "message": "An unexpected error occurred. Please try again later.",
-  "requestId": "12345678-1234-1234-1234-123456789012",
-  "timestamp": "2024-08-29T16:45:00Z"
+  "statusCode": 500,
+  "body": {
+    "error": "INTERNAL_SERVER_ERROR",
+    "message": "An unexpected error occurred. Please try again later.",
+    "details": "Specific error details when available"
+  }
 }
 ```
 
