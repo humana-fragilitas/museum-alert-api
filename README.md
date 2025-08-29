@@ -1,469 +1,341 @@
-# museum-alert-api
+# Museum Alert API
 
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/humana-fragilitas/c5e59bb95d53e6062c676cd9b89120a4/raw/coverage-badge.json)](https://github.com/humana-fragilitas/museum-alert/actions)
 
-RESTful APIs meant to complement the "Museum Alert" IoT project
+AWS CDK-based infrastructure for the Museum Alert IoT project, providing cloud services for device management, user authentication, and real-time communication with Arduino-based ultrasonic sensors.
 
-## Lambda layer deployment
+## 🏗️ Architecture Overview
 
-Zip and upload the nodejs folder.
+This project creates a complete AWS infrastructure stack comprising:
 
-## Prerequisites
+- **API Gateway**: RESTful endpoints for device and user management
+- **AWS Cognito**: User authentication and authorization services
+- **AWS IoT Core**: Device connectivity, message routing, and provisioning
+- **AWS Lambda**: Serverless business logic and event processing
+- **DynamoDB**: NoSQL database for storing company and device data
+- **CloudWatch**: Logging, monitoring, and alerting
 
-### Getting AWS Access Keys
+## 📋 Prerequisites
 
-Option 1: Create IAM User (Recommended for Development)
+### System Requirements
+- **Node.js**: version 18.x or higher
+- **AWS CLI**: configured with appropriate credentials
+- **AWS CDK**: version 2.208.0 or higher
 
-Log into AWS Console → Go to IAM service
-Create a new IAM user:
+### AWS Account Setup
 
-- Click "Users" → "Add users"
-- Enter username (e.g., "iot-project-dev")
-- Select "Attach policies directly"
-   - Attach permissions:
-   - For development/testing: Attach "AdministratorAccess (AWS managed - job function)" policy
-   - For production: Create more restrictive policies later
-- Click "Create user"
-- Click on username "iot-project-dev"
-- Click on "Create access key", the choose "Use case: Command Line Iterface (CLI)"
-- Take note of access key and secret access key and/or download the "iot-project-dev_accessKeys.csv" file containing the credentials
+#### 1. Create IAM User for CDK Deployment
 
-Download credentials:
+1. **Log into AWS Console** → Go to **IAM service**
+2. **Create a new IAM user**:
+   - Click "Users" → "Add users"
+   - Enter username (e.g., "museum-alert-dev")
+   - Select "Attach policies directly"
+   - Attach "AdministratorAccess" policy (for development)
+   - Click "Create user"
+3. **Generate Access Keys**:
+   - Click on the username → "Security credentials"
+   - Click "Create access key" → Choose "Command Line Interface (CLI)"
+   - **Save the credentials securely** - you won't see the secret key again!
 
-Copy the Access Key ID and Secret Access Key
-Important: Save these securely - you won't see the secret key again!
+#### 2. Configure AWS CLI
 
-### Install AWS CDK globally:
+```bash
+# Install AWS CLI if not already installed
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Configure AWS credentials
+aws configure --profile cdk-deploy
+# Enter your Access Key ID and Secret Access Key
+# Default region: eu-west-2 (for development) or eu-west-1 (for production)
+# Default output format: json
+
+# Verify setup
+aws sts get-caller-identity --profile cdk-deploy
+```
+
+#### 3. Install AWS CDK
 
 ```bash
 npm install -g aws-cdk
-```
 
-# Verify your setup:
-
-```bash
+# Verify installation
 cdk --version
-aws --version
-aws configure
-````
-
-Enter your credentials when prompted
-
-- AWS Access Key ID: (from the CSV)
-- AWS Secret Access Key: (from the CSV)
-- Default region name: us-west-1
-- Default output format: json
-
-Then test the connection: This should show your AWS account info
-
-```bash
-aws sts get-caller-identity
 ```
 
-You should see an output as follows:
+## 🚀 Quick Start
 
-```bash
-{
-    "UserId": "{USER_ID}",
-    "Account": "{ACCOUNT_ID}",
-    "Arn": "arn:aws:iam::{ACCOUNT_ID}:user/iot-project-dev"
-}
-```
+### Option 1: AWS CloudShell (Recommended for first-time users)
 
-Bootstrap environment
-
-```bash
-cdk bootstrap
-```
-
-Useful commands
-
-```bash
-# Make sure your AWS CLI is pointing to eu-west-1
-aws configure get region
-
-# If not eu-west-1, set it:
-aws configure set region eu-west-1
-
-# Or set temporarily:
-export AWS_DEFAULT_REGION=eu-west-1
-
-# Now run the inventory against your working infrastructure
-chmod +x scripts/inventory.sh
-./scripts/inventory.sh
-
-# Then analyze the patterns
-./scripts/analyze-resources.sh
-
-# Then, before deploying
-# Configure a new profile for CDK
-aws configure --profile cdk-deploy
-# Enter the Access Key ID and Secret for your CDK user
-# Region: eu-west-2
-# Output format: json
-```
-
-# Clean up and redeploy
-
-```bash
-# Clean up the failed stack
-npm run destroy:dev
-
-# Verify all stacks are gone
-aws cloudformation list-stacks --region eu-west-2 --stack-status-filter DELETE_COMPLETE --query 'StackSummaries[?contains(StackName, `museum-alert`)].StackName'
-
-# Deploy again with proper dependencies
-npm run deploy:dev
-```
-
-If ```npm run destroy:dev```fails:
-
-aws cloudformation list-stacks \
-  --query "StackSummaries[?StackStatus=='CREATE_COMPLETE'].StackName" \
-  --profile cdk-deploy \
-  --region eu-west-2
-
-And deleted stacks one by one:
-
-```cdk destroy museum-alert-cognito-dev --context stage=dev --force```
-
-Or...
-
-```bash
-#!/bin/bash
-
-# Set AWS profile and region
-AWS_PROFILE=cdk-deploy
-REGION=eu-west-2
-CONTEXT=stage=dev
-
-# Get stack names with CREATE_COMPLETE status
-STACKS=$(aws cloudformation list-stacks \
-  --profile $AWS_PROFILE \
-  --region $REGION \
-  --query "StackSummaries[?StackStatus=='CREATE_COMPLETE'].StackName" \
-  --output text)
-
-# Loop through stacks and destroy them one by one
-for STACK in $STACKS; do
-  echo "Destroying stack: $STACK"
-  cdk destroy $STACK --context $CONTEXT --force --profile $AWS_PROFILE
-done
-```
-
-# Welcome to your CDK TypeScript project
-
-This is a blank project for CDK development with TypeScript.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-## Useful commands
-
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
-
-
-# ==== WHAT ARE THE NPM SCRIPTS MEANT FOR ====
-
-Deployment Scripts
-deploy:dev and deploy:prod
-bashnpm run build && cdk deploy --all --context stage=dev --require-approval never
-
-npm run build: Compiles TypeScript to JavaScript first
-cdk deploy --all: Deploys ALL stacks in your app
---context stage=dev: Sets the stage variable to "dev" (or "prod")
-
-This makes your app use the dev config from environments.ts (eu-west-2)
-Or prod config (eu-west-1)
-
-
---require-approval never: Skips confirmation prompts (auto-approves changes)
-
-Result: Creates your entire infrastructure in the specified region
-Destruction Scripts
-destroy:dev and destroy:prod
-bashcdk destroy --all --context stage=dev --force
-
-cdk destroy --all: Deletes ALL stacks and resources
---context stage=dev: Targets the dev environment (eu-west-2)
---force: Skips confirmation prompts (immediately destroys)
-
-⚠️ Warning: This permanently deletes all your infrastructure!
-Preview Scripts
-diff:dev and diff:prod
-bashcdk diff --all --context stage=dev
-
-Shows what changes would be made WITHOUT actually deploying
-Compares your CDK code vs. what's currently deployed
-Safe to run - doesn't make any changes
-
-synth:dev and synth:prod
-bashcdk synth --all --context stage=dev
-
-Generates CloudFormation templates from your CDK code
-Shows the raw AWS CloudFormation that would be created
-Saves templates to cdk.out/ directory
-Safe to run - doesn't deploy anything
-
-Bootstrap Scripts
-bootstrap:dev and bootstrap:prod
-bashcdk bootstrap --context stage=dev
-
-One-time setup required per AWS account/region
-Creates S3 bucket and IAM roles needed for CDK deployments
-Only needs to be run once per region
-Safe to run multiple times (idempotent)
-
-Utility Scripts
-inventory
-bash./scripts/inventory.sh
-
-Runs your custom script to document existing AWS resources
-Useful for understanding current infrastructure
-
-Typical Workflow
-bash# 1. Preview what will be created
-npm run diff:dev
-
-# 2. Deploy to test region (eu-west-2)
-npm run deploy:dev
-
-# 3. Test your application...
-
-# 4. If everything works, preview production changes
-npm run diff:prod
-
-# 5. Deploy to production (eu-west-1)
-npm run deploy:prod
-
-# 6. Clean up test environment when done
-npm run destroy:dev
-The --context stage=dev is what tells your app which configuration to use from environments.ts!
-
-# ==== BOOTSTRAP ====
-
-No, bootstrapping is NOT dangerous at all! It's actually a required prerequisite for CDK deployments. Let me explain what it does:
-What CDK Bootstrap Does ✅
-CDK bootstrap is a one-time setup that creates essential infrastructure CDK needs to work:
-Creates Safe Infrastructure:
-
-S3 bucket - For storing CloudFormation templates and Lambda code
-IAM roles - For CDK to deploy resources on your behalf
-SSM parameters - For version tracking
-ECR repository - For container images (if needed)
-
-What It DOESN'T Do:
-
-❌ Doesn't create your application resources (Lambda, API Gateway, etc.)
-❌ Doesn't modify existing resources
-❌ Doesn't cost much (S3 bucket + minimal IAM roles)
-❌ Doesn't affect your production environment (this is dev-only)
-
-The Bootstrap Command Breakdown
-bashnpm run bootstrap:dev
-Translates to:
-bashcdk bootstrap --context stage=dev
-Which runs:
-bashcdk bootstrap aws://767398097786/eu-west-2
-What You'll See
-Bootstrap creates resources with names like:
-
-cdk-hnb659fds-assets-767398097786-eu-west-2 (S3 bucket)
-cdk-hnb659fds-deploy-role-767398097786-eu-west-2 (IAM role)
-A few SSM parameters
-
-Why You Need It
-Without bootstrap: CDK has nowhere to store your Lambda code and CloudFormation templates, so deployment fails.
-With bootstrap: CDK uploads your code to the S3 bucket, then deploys from there.
-Cost Impact 💰
-Minimal cost:
-
-S3 bucket: ~$0.02/month (nearly free)
-IAM roles: Free
-SSM parameters: Free
-
-Is It Safe? 🛡️
-Absolutely yes:
-
-✅ Standard AWS best practice
-✅ Used by millions of CDK developers
-✅ Only creates support infrastructure
-✅ Can be deleted anytime with cdk bootstrap --cleanup
-
-Recommendation
-Just run it! It's completely safe and necessary:
-bashnpm run bootstrap:dev
-npm run deploy:dev
-The bootstrap only needs to run once per region per account. After that, you can deploy as many CDK apps as you want in that region.
-Would you like to proceed with bootstrapping?RiprovaABWhen I am done with testing, how do I reverse this bootstrap?ModificaGreat question! Here are the ways to clean up the bootstrap resources when you're done:
-Option 1: Automatic Cleanup (Easiest) ✅
-CDK v2 has a built-in cleanup command:
-bashcdk bootstrap --toolkit-stack-name CDKToolkit --cleanup
-Or for your specific region:
-bashcdk bootstrap --context stage=dev --cleanup
-This removes all bootstrap resources automatically.
-Option 2: Manual Cleanup (More Control) 🔧
-If the automatic cleanup doesn't work or you want more control:
-1. Delete the CloudFormation Stack
-bashaws cloudformation delete-stack --stack-name CDKToolkit --region eu-west-2
-2. Empty and Delete S3 Bucket
-bash# List the bucket name first
-aws s3 ls | grep cdk-hnb659fds-assets
-
-# Empty the bucket (replace with actual bucket name)
-aws s3 rm s3://cdk-hnb659fds-assets-767398097786-eu-west-2 --recursive
-
-# Delete the bucket
-aws s3 rb s3://cdk-hnb659fds-assets-767398097786-eu-west-2
-Option 3: AWS Console (Visual) 🖱️
-
-CloudFormation Console:
-
-Go to CloudFormation in eu-west-2
-Find stack named "CDKToolkit"
-Delete it
-
-
-S3 Console:
-
-Go to S3
-Find bucket cdk-hnb659fds-assets-*
-Empty and delete it
-
-
-
-What Gets Cleaned Up 🧹
-Bootstrap cleanup removes:
-
-✅ S3 bucket and all contents
-✅ IAM roles (cdk-*-deploy-role, cdk-*-file-publishing-role, etc.)
-✅ SSM parameters (/cdk-bootstrap/*/version)
-✅ ECR repository (if created)
-
-Important Notes ⚠️
-
-Don't cleanup while stacks exist - First destroy your app stacks:
-bashnpm run destroy:dev
-# Then cleanup bootstrap
-cdk bootstrap --cleanup
-
-Per-region cleanup - Bootstrap is per-region, so clean up each region separately
-Shared bootstrap - If you have other CDK apps in the same region, don't cleanup until all are destroyed
-
-Complete Cleanup Sequence 📝
-When you're completely done testing:
-bash# 1. Destroy your application stacks
-npm run destroy:dev
-
-# 2. Clean up bootstrap
-cdk bootstrap --context stage=dev --cleanup
-
-# 3. Verify cleanup (should show no CDK resources)
-aws cloudformation list-stacks --region eu-west-2 --query 'StackSummaries[?contains(StackName, `CDK`) || contains(StackName, `cdk`)]'
-Cost During Testing 💰
-Don't worry about costs during testing:
-
-Bootstrap resources cost ~$0.02/month
-Your actual app resources (Lambda, API Gateway, etc.) cost more, but are deleted with npm run destroy:dev
-
-# ==== CLAUDE DOCUMENTATION ==== 
-
-# IoT Project - Infrastructure Deployment
-
-This project supports two deployment methods. Choose the one that works best for you:
-
-## 🚀 Quick Start (AWS CloudShell) - Recommended
-
-**Perfect for: Quick testing, first-time users, or those who want minimal setup**
-
-1. **Open AWS CloudShell**:
-   - Log into your AWS Console
-   - Click the CloudShell icon (terminal) in the top navigation bar
-   - Wait for the environment to initialize
-
-2. **Clone and Deploy**:
+1. **Open AWS CloudShell** in your AWS Console
+2. **Clone and deploy**:
    ```bash
-   # Clone the repository
-   git clone https://github.com/your-username/your-iot-project.git
-   cd your-iot-project/infrastructure
-   
-   # Install dependencies
+   git clone https://github.com/humana-fragilitas/museum-alert-api.git
+   cd museum-alert-api
    npm install
    
-   # Deploy (includes automatic bootstrap)
+   # Deploy to development environment
    npm run deploy:dev
    ```
 
-3. **Access your deployment**:
-   - The deployment will output important URLs and identifiers
-   - Use these in your Angular app configuration
+### Option 2: Local Development
 
-**Pros**: No credential setup, consistent environment, secure
-**Cons**: 1GB storage limit, requires internet connection
-
----
-
-## 💻 Local Development Setup
-
-**Perfect for: Contributors, developers who want to modify the code, or extended development**
-
-### Prerequisites
-- Node.js 18+ installed locally
-- AWS CLI configured with credentials
-
-### Setup Steps
-1. **Install AWS CDK**:
+1. **Clone the repository**:
    ```bash
-   npm install -g aws-cdk
+   git clone https://github.com/humana-fragilitas/museum-alert-api.git
+   cd museum-alert-api
    ```
 
-2. **Configure AWS Credentials**:
+2. **Install dependencies**:
    ```bash
-   aws configure
-   # Enter your Access Key ID, Secret Access Key, and preferred region
-   ```
-
-3. **Clone and Deploy**:
-   ```bash
-   git clone https://github.com/your-username/your-iot-project.git
-   cd your-iot-project/infrastructure
    npm install
-   npm run deploy:dev  # Includes automatic bootstrap
    ```
 
-**Pros**: Full IDE support, unlimited storage, offline capability
-**Cons**: Requires credential management, more setup steps
+3. **Bootstrap CDK** (first-time only):
+   ```bash
+   npm run bootstrap:dev
+   ```
 
----
+4. **Deploy the infrastructure**:
+   ```bash
+   npm run deploy:dev
+   ```
 
-## 🛠️ Development Commands
+## 🛠️ Available Commands
 
-Once you have either setup working:
+### Deployment Commands
 
-```bash
-# Preview changes before deployment
-npm run diff:dev
+| Command | Description | Environment | Region |
+|---------|-------------|-------------|--------|
+| `npm run deploy:dev` | Deploy all stacks to development | Development | eu-west-2 |
+| `npm run deploy:prod` | Deploy all stacks to production | Production | eu-west-1 |
 
-# Deploy all stacks
-npm run deploy:dev
+### Preview Commands
 
-# Clean up created resources
-npm run destroy:dev
+| Command | Description |
+|---------|-------------|
+| `npm run diff:dev` | Show changes that would be made to dev environment |
+| `npm run diff:prod` | Show changes that would be made to prod environment |
+| `npm run synth:dev` | Generate CloudFormation templates for dev |
+| `npm run synth:prod` | Generate CloudFormation templates for prod |
+
+### Cleanup Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run destroy:dev` | ⚠️ Delete all development resources |
+| `npm run destroy:prod` | ⚠️ Delete all production resources |
+
+### Utility Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run bootstrap:dev` | One-time CDK setup for dev region |
+| `npm run bootstrap:prod` | One-time CDK setup for prod region |
+| `npm test` | Run unit tests |
+| `npm run test:coverage` | Run tests with coverage report |
+
+## 🏭 Infrastructure Components
+
+### Deployment Architecture
+
+The infrastructure is organized into **9 interconnected CloudFormation stacks**:
+
+#### 1. **IAM Stack** (`museum-alert-iam-{stage}`)
+- **Purpose**: Identity and Access Management roles and policies
+- **Resources**:
+  - Lambda execution roles
+  - IoT provisioning roles
+  - Cross-service permissions
+
+#### 2. **Shared Infrastructure Stack** (`museum-alert-shared-infra-{stage}`)
+- **Purpose**: Common resources shared across services
+- **Resources**:
+  - Lambda Layer with shared utilities
+  - Common libraries and dependencies
+
+#### 3. **Database Stack** (`museum-alert-database-{stage}`)
+- **Purpose**: Data persistence layer
+- **Resources**:
+  - DynamoDB table: `companies` (company information storage)
+  - Pay-per-request billing
+  - Point-in-time recovery enabled
+
+#### 4. **Cognito Stack** (`museum-alert-cognito-{stage}`)
+- **Purpose**: User authentication and authorization
+- **Resources**:
+  - User Pool: `museum-alert-user-pool-open-signup`
+  - Identity Pool: `museum-alert-identity-pool`
+  - User Pool Client for web/mobile applications
+  - Post-confirmation Lambda trigger
+
+#### 5. **Lambda Stack** (`museum-alert-lambda-{stage}`)
+- **Purpose**: Serverless business logic
+- **Resources**:
+  - **Company Management**: `getCompanyLambda`, `updateCompanyLambda`
+  - **Device Provisioning**: `createProvisioningClaimLambda`, `preProvisioningHookLambda`
+  - **Device Management**: `checkThingExistsLambda`, `deleteThingLambda`
+  - **IoT Integration**: `attachIoTPolicyLambda`, `addThingToGroupLambda`
+  - **Event Processing**: `republishDeviceConnectionStatusLambda`
+
+#### 6. **IoT Stack** (`museum-alert-iot-{stage}`)
+- **Purpose**: IoT device connectivity and management
+- **Resources**:
+  - Thing Type: `Museum-Alert-Sensor`
+  - Provisioning Template: `museum-alert-provisioning-template`
+  - IoT Policies: device and user access policies
+  - Device provisioning workflow
+
+#### 7. **API Gateway Stack** (`museum-alert-api-{stage}`)
+- **Purpose**: RESTful API endpoints
+- **Resources**:
+  - REST API: `museum-alert-api`
+  - Cognito authorizer integration
+  - CORS configuration
+  - CloudWatch logging
+
+#### 8. **Triggers Stack** (`museum-alert-triggers-{stage}`)
+- **Purpose**: Event-driven automation and routing
+- **Resources**:
+  - IoT Rules for message routing
+  - Device connection status republishing
+  - Automatic thing group management
+  - CloudWatch integration
+
+#### 9. **Config Output Stack** (`museum-alert-config-{stage}`)
+- **Purpose**: Configuration export for client applications
+- **Resources**:
+  - Angular application configuration
+  - Arduino sketch configuration
+  - Endpoint URLs and resource IDs
+
+## 📡 API Endpoints
+
+Base URL: `https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{stage}`
+
+All endpoints require **Cognito JWT authentication** via `Authorization` header.
+
+### Company Management
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/company` | GET | Get current user's company information | None | Company object |
+| `/company` | PATCH | Update current user's company information | Company data | Updated company object |
+
+### Device Provisioning
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/provisioning-claims` | POST | Create temporary certificates for device registration | Device metadata | Certificate and private key |
+
+### Device Management
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/things/{thingName}` | GET | Get device information by serial number | None | Device object |
+| `/things/{thingName}` | DELETE | Remove device from company fleet | None | Deletion confirmation |
+
+### User Authorization
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/user-policy` | POST | Attach IoT permissions to current user | None | Policy attachment confirmation |
+
+## 📤 Configuration Output
+
+After successful deployment, the system provides ready-to-use configuration for client applications:
+
+### Angular/Desktop Application Configuration
+
+```javascript
+// Copy this from deployment output to src/environments/environment.*.ts
+export const APP_CONFIG = {
+  production: false,
+  environment: 'DEV',
+  aws: {
+    apiGateway: 'https://xxxxxxxxxx.execute-api.eu-west-2.amazonaws.com/dev',
+    region: 'eu-west-2',
+    algorithm: 'AWS4-HMAC-SHA256',
+    IoTCore: {
+      endpoint: 'xxxxxxxxxx-ats.iot.eu-west-2.amazonaws.com',
+      service: 'iotdevicegateway'
+    },
+    amplify: {
+      Auth: {
+        Cognito: {
+          userPoolId: 'eu-west-2_xxxxxxxxx',
+          userPoolClientId: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+          identityPoolId: 'eu-west-2:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+          mandatorySignIn: true,
+          authenticationFlowType: 'USER_SRP_AUTH'
+        }
+      }
+    }
+  },
+  settings: {
+    MQTT_RESPONSE_TIMEOUT: 10000,
+    USB_RESPONSE_TIMEOUT: 10000,
+  }
+};
 ```
 
-## ⚠️ Important Notes
+### Arduino Sketch Configuration
 
-- **Development environment** deploys to `eu-west-1` by default;
-- all resources are named consistently for easy identification;
-- DynamoDB tables in development are set to auto-delete when stack is destroyed.
+```cpp
+// Copy this to config.h in the Arduino sketch
+namespace AWS {
+  static constexpr const char* IOT_CORE_ENDPOINT = "xxxxxxxxxx-ats.iot.eu-west-2.amazonaws.com";
+}
+```
 
-## Configuration Output
+## 🌍 Environment Configuration
 
-![alt text](./docs/images/configuration_output.png "Cloud Formation Configuration Stack Output")
+### Development Environment (`dev`)
+- **Region**: `eu-west-2` (Europe - London)
+- **Purpose**: Testing and development
+- **Features**: Debug logging, auto-cleanup on destroy
+- **Cost**: Minimal (pay-per-use resources)
+
+### Production Environment (`prod`)
+- **Region**: `eu-west-1` (Europe - Ireland)
+- **Purpose**: Live production workloads
+- **Features**: Enhanced logging, resource retention
+- **Cost**: Production-scale pricing
+
+## 🔧 Development Workflow
+
+### 1. Preview Changes
+```bash
+# See what would change before deploying
+npm run diff:dev
+```
+
+### 2. Deploy to Development
+```bash
+# Deploy all stacks
+npm run deploy:dev
+```
+
+### 3. Test Your Changes
+- Use the configuration outputs to test with client applications
+- Verify API endpoints and IoT functionality
+
+### 4. Deploy to Production
+```bash
+# Preview production changes
+npm run diff:prod
+
+# Deploy to production
+npm run deploy:prod
+```
+
+### 5. Cleanup Development Resources
+```bash
+# Remove all development resources
+npm run destroy:dev
+```
 
 ## Architecture diagrams
 
@@ -479,18 +351,127 @@ npm run destroy:dev
 
 ![alt text](./docs/images/device_registration_flow_diagram.svg "Museum Alert Device Registration Flow Diagram")
 
-## API
+## 🗂️ Project Structure
 
-Base URL: ```https://{api-gateway-id}.execute-api.{region}.amazonaws.com/dev```.
-This API is powered by AWS Lambda functions behind API Gateway; all endpoints are authenticated via Cognito Authorizer, partially follow RESTful conventions and return JSON responses.
+```
+museum-alert-api/
+├── infrastructure/
+│   ├── bin/
+│   │   └── iot-project.ts          # CDK app entry point
+│   ├── config/
+│   │   ├── environments.ts         # Environment configurations
+│   │   └── types.ts               # TypeScript type definitions
+│   └── lib/stacks/                # CloudFormation stacks
+│       ├── api-gateway-stack.ts   # REST API definitions
+│       ├── cognito-stack.ts       # Authentication services
+│       ├── config-output-stack.ts # Configuration export
+│       ├── database-stack.ts      # DynamoDB tables
+│       ├── iam-stack.ts          # Access management
+│       ├── iot-stack.ts          # IoT device management
+│       ├── lambda-stack.ts       # Serverless functions
+│       ├── shared-infra-stack.ts # Common resources
+│       └── triggers-stack.ts     # Event automation
+├── lambda/                        # Lambda function code
+│   ├── getCompanyLambda/
+│   ├── updateCompanyLambda/
+│   ├── createProvisioningClaimLambda/
+│   ├── checkThingExistsLambda/
+│   ├── deleteThingLambda/
+│   ├── attachIoTPolicyLambda/
+│   └── ... (other Lambda functions)
+└── docs/                         # Architecture diagrams
+```
 
-### 📘 Endpoints Overview
+## 📊 Monitoring and Logging
 
-| Endpoint                                   | Method          | Description                                                                 |
-|-------------------------------------------|-----------------|------------------------------------------------------------------------------|
-| `/company`                                 | GET    | Returns logged user's own associated Company information                    |
-| `/company`                                 | PUT (PATCH?)    | Updates logged user's own associated Company information                    |
-| `/device-management/provisioning-claims`   | POST            | Creates temporary certificate and private key to register a device          |
-| `/things/{thingName}`                      | GET             | Returns thing identified by thing name (serial number) if registered in logged user's Company fleet |
-| `/user-policy`                             | POST            | Attaches Company-specific IoT Core policy to currently logged user          |
+The infrastructure includes comprehensive monitoring:
+
+- **CloudWatch Logs**: All Lambda functions and API Gateway
+- **CloudWatch Metrics**: API Gateway performance and Lambda execution
+- **IoT Logging**: Device connection and message flow
+- **Access Logs**: API Gateway request/response logging
+
+## 💰 Cost Optimization
+
+### Development Environment
+- **DynamoDB**: Pay-per-request (minimal cost for testing)
+- **Lambda**: Free tier eligible
+- **API Gateway**: Pay-per-request
+- **IoT Core**: Pay-per-message
+
+### Production Environment
+- **DynamoDB**: Provisioned capacity for predictable costs
+- **CloudWatch**: Log retention optimized
+- **API Gateway**: Consider usage plans for cost control
+
+## 🔒 Security Features
+
+- **IAM Roles**: Least-privilege access principles
+- **Cognito Authentication**: JWT token-based API access
+- **IoT Policies**: Device-specific permissions
+- **VPC Integration**: Optional for enhanced security
+- **Encryption**: Data encrypted in transit and at rest
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Bootstrap Required**:
+   ```bash
+   npm run bootstrap:dev
+   ```
+
+2. **Permission Denied**:
+   - Verify AWS credentials and IAM permissions
+   - Check AWS profile configuration
+
+3. **Stack Dependency Errors**:
+   - Stacks have built-in dependency management
+   - Use `npm run destroy:dev` and redeploy if needed
+
+4. **Region Mismatch**:
+   - Ensure AWS CLI region matches environment configuration
+   - Dev: `eu-west-2`, Prod: `eu-west-1`
+
+### Cleanup Failed Deployments
+
+```bash
+# List all stacks
+aws cloudformation list-stacks --region eu-west-2 --profile cdk-deploy
+
+# Force cleanup if needed
+npm run destroy:dev
+```
+
+## 🔗 Related Projects
+
+This infrastructure supports:
+
+- **[Museum Alert Desktop](https://github.com/humana-fragilitas/museum-alert-desktop)**: Cross-platform device management application
+- **[Museum Alert Sketch](https://github.com/humana-fragilitas/museum-alert-sketch)**: Arduino firmware for ultrasonic sensors
+
+## 📋 Architecture Diagrams
+
+![Configuration Output](./docs/images/configuration_output.png)
+
+### User Registration Flow
+![User Registration Flow](./docs/images/registration_flow_diagram.svg)
+
+### User Authentication Flow
+![User Authentication Flow](./docs/images/authentication_flow_diagram.svg)
+
+### Device Registration Flow
+![Device Registration Flow](./docs/images/device_registration_flow_diagram.svg)
+
+## ⚠️ Important Notes
+
+- **Bootstrap is required** once per AWS account/region before first deployment
+- **Development resources** are configured for auto-deletion to minimize costs
+- **Production resources** are retained even after stack deletion for data protection
+- **Configuration outputs** are essential for client application setup
+- **IAM permissions** require administrative access for initial setup
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
