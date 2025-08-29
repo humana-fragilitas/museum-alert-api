@@ -318,7 +318,7 @@ export class ApiGatewayStack extends BaseStack {
   private createOutputs(): void {
     // API Gateway URL for Angular config
     new cdk.CfnOutput(this, 'ApiGatewayUrl', {
-      value: this.api.url,
+      value: this.api.url.replace(/\/$/, ''),
       description: 'API Gateway URL for Angular app',
       exportName: `${this.config.projectName}-api-url-${this.config.stage}`,
     });

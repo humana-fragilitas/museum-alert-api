@@ -108,11 +108,11 @@ export class ConfigOutputStack extends BaseStack {
           }
         };`,
       { 
-        apiUrl: apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl,
-        userPoolId: userPoolId,
-        userPoolClientId: userPoolClientId,
-        identityPoolId: identityPoolId,
-        iotEndpoint: iotEndpoint
+        apiUrl,
+        userPoolId,
+        userPoolClientId,
+        identityPoolId,
+        iotEndpoint
       }),
       description: '🔧 COPY THIS: Complete Angular App Configuration (APP_CONFIG)',
     });
